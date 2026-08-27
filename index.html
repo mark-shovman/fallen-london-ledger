@@ -54,6 +54,24 @@ a.btn{color:var(--ink-muted); text-decoration:none}
 a.btn:hover{color:var(--brass-bright)}
 .btn-primary{background:var(--brass-soft); border-color:var(--brass); color:var(--brass-bright)}
 .btn-primary:hover{background:rgba(198,138,58,.22)}
+.mast-more{position:relative}
+.mast-more summary{list-style:none}
+.mast-more summary::-webkit-details-marker{display:none}
+.mast-more-menu{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+@media (min-width:641px){
+  .mast-more summary{display:none}
+  .mast-more:not([open]) .mast-more-menu{display:flex}
+}
+@media (max-width:640px){
+  .btn{min-height:2.75rem; display:inline-flex; align-items:center; justify-content:center}
+  .mast-more:not([open]) .mast-more-menu{display:none}
+  .mast-more[open] .mast-more-menu{
+    position:absolute; right:0; top:calc(100% + .4rem); z-index:50;
+    flex-direction:column; align-items:stretch; background:var(--surface); border:1px solid var(--line);
+    border-radius:3px; padding:.5rem; min-width:9rem; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .mast-more[open] .mast-more-menu .btn{justify-content:flex-start}
+}
 
 /* ---------- shell ---------- */
 .shell{max-width:1500px; margin:0 auto; padding:clamp(.9rem,2vw,1.6rem); display:grid; gap:clamp(.9rem,1.6vw,1.5rem);
@@ -66,6 +84,10 @@ a.btn:hover{color:var(--brass-bright)}
 @media (max-width:1240px){ .rail{position:static} }
 .rail ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
 @media (max-width:1240px){ .rail ol{flex-direction:row; flex-wrap:wrap} }
+@media (max-width:640px){
+  .rail ol{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:.3rem}
+  .rail .step-btn{width:auto; flex:0 0 auto; min-width:8.5rem}
+}
 .step-btn{
   width:100%; display:flex; gap:.6rem; align-items:baseline; text-align:left; cursor:pointer;
   background:transparent; border:1px solid transparent; border-left:2px solid var(--line-soft);
@@ -210,6 +232,7 @@ textarea{resize:vertical; min-height:3.4rem}
 .track.out .tval{color:var(--bad); font-weight:600}
 .tbtn{width:1.05rem; height:1.05rem; line-height:1; padding:0; background:transparent; border:1px solid var(--line); border-radius:1px; cursor:pointer; color:var(--ink-muted); font-size:.7rem}
 .tbtn:hover{border-color:currentColor}
+@media (max-width:640px){ .tbtn{width:1.8rem; height:1.8rem; font-size:.85rem} }
 .charges{display:inline-flex; gap:3px; margin-left:.45rem; vertical-align:middle}
 .chg{width:.62rem; height:.62rem; padding:0; border:1px solid var(--violant); background:transparent; border-radius:1px; cursor:pointer}
 .chg.on{background:var(--violant)}
@@ -286,11 +309,16 @@ textarea{resize:vertical; min-height:3.4rem}
     </div>
     <div class="mast-actions">
       <a class="btn" href="concern.html" style="text-decoration:none">Concern ledger →</a>
-      <button class="btn" id="btn-example" type="button">Sample</button>
-      <button class="btn" id="btn-reset" type="button">Clear</button>
-      <button class="btn" id="btn-load" type="button">Load</button>
-      <button class="btn" id="btn-save" type="button">Save</button>
-      <button class="btn" id="btn-pdf" type="button">Print</button>
+      <details class="mast-more">
+        <summary class="btn" aria-label="More actions">⋯</summary>
+        <div class="mast-more-menu">
+          <button class="btn" id="btn-example" type="button">Sample</button>
+          <button class="btn" id="btn-reset" type="button">Clear</button>
+          <button class="btn" id="btn-load" type="button">Load</button>
+          <button class="btn" id="btn-save" type="button">Save</button>
+          <button class="btn" id="btn-pdf" type="button">Print</button>
+        </div>
+      </details>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
       <input type="file" id="cat-input" accept=".md,.markdown,.txt,.json,text/markdown,text/plain,application/json" hidden>
     </div>
