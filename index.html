@@ -760,7 +760,7 @@ function compute(){
 function renderRail(){
   $("#rail").innerHTML = STEPS.map((s,i)=>{
     let pick="";
-    if(s.key==="attributes") pick = S.attr2?(S.attr2.slice(0,3)+" 2 · "+S.attr0.slice(0,3)+" 0"):"";
+    if(s.key==="attributes") pick = [S.attr2?S.attr2.slice(0,3)+" 2":"", S.attr0?S.attr0.slice(0,3)+" 0":""].filter(Boolean).join(" · ");
     else if(s.key==="obsessions") pick = S.ambition?"ambition set":"";
     else if(s.key==="expertise"){ const c=compute(); pick = c.spent+"/"+c.points+" levels"; }
     else if(s.key==="kit"){ const f=GEAR_SLOTS.filter(x=>S.gear[x.key]).length; pick = f?f+"/6 filled":""; }
