@@ -50,6 +50,8 @@ button{font-family:var(--mono); color:inherit}
   background:transparent; border:1px solid var(--line); border-radius:2px; cursor:pointer; transition:.15s;
 }
 .btn:hover{border-color:var(--brass); color:var(--brass-bright)}
+a.btn{color:var(--ink-muted); text-decoration:none}
+a.btn:hover{color:var(--brass-bright)}
 .btn-primary{background:var(--brass-soft); border-color:var(--brass); color:var(--brass-bright)}
 .btn-primary:hover{background:rgba(198,138,58,.22)}
 
@@ -314,12 +316,12 @@ textarea{resize:vertical; min-height:3.4rem}
       <span class="lbl">Concern creation &middot; corebook preview, Aug 2026</span>
     </div>
     <div class="mast-actions">
-      <a class="linked" href="index.html">Character ledger →</a>
-      <button class="btn" id="btn-example" type="button">Load example</button>
+      <a class="btn" href="index.html">Character ledger →</a>
+      <button class="btn" id="btn-example" type="button">Sample</button>
       <button class="btn" id="btn-reset" type="button">Clear</button>
-      <button class="btn" id="btn-load" type="button">Load…</button>
-      <button class="btn" id="btn-save" type="button">Save file</button>
-      <button class="btn btn-primary" id="btn-pdf" type="button">Export PDF</button>
+      <button class="btn" id="btn-load" type="button">Load</button>
+      <button class="btn" id="btn-save" type="button">Save</button>
+      <button class="btn" id="btn-pdf" type="button">Print</button>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
     </div>
   </div>
