@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fallen London Character Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --ground:#0D1014; --ground-2:#111519; --surface:#161B22; --surface-2:#1D242D;
+  --line:#2A323D; --line-soft:#212832;
+  --ink:#E9E5DA; --ink-muted:#9AA4B2; --ink-dim:#6C7684;
+  --brass:#C68A3A; --brass-bright:#E0A64C; --brass-soft:rgba(198,138,58,.13);
+  --violant:#8C6FD1;
+  --wounds:#C0564A; --nightmares:#8C6FD1; --scandal:#D6BC57; --suspicion:#5D96BC;
+  --ok:#5E9E7A; --warn:#D2A03F; --bad:#C0564A;
+  --display:"Bodoni Moda",Georgia,"Times New Roman",serif;
+  --body:"Spectral",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --step:clamp(.85rem,.2vw + .8rem,.95rem);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--body); font-size:var(--step); line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display); font-weight:600; text-wrap:balance; margin:0; line-height:1.15}
+p{margin:0 0 .7em}
+p:last-child{margin-bottom:0}
+a{color:var(--brass-bright)}
+button{font-family:var(--mono); color:inherit}
+:focus-visible{outline:2px solid var(--brass-bright); outline-offset:2px}
+.lbl{font-family:var(--mono); font-size:.63rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim)}
+
+/* ---------- masthead ---------- */
+.masthead{
+  position:sticky; top:0; z-index:40; background:linear-gradient(180deg,var(--ground-2) 72%,rgba(13,16,20,.86));
+  border-bottom:1px solid var(--line); backdrop-filter:blur(6px);
+}
+.masthead-in{max-width:1500px; margin:0 auto; padding:.7rem clamp(.8rem,2vw,1.6rem); display:flex; gap:1rem; align-items:center; flex-wrap:wrap}
+.wordmark{display:flex; flex-direction:column; gap:.1rem; margin-right:auto}
+.wordmark h1{font-size:1.32rem; letter-spacing:.01em}
+.wordmark .lbl{color:var(--ink-dim)}
+.mast-actions{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+.btn{
+  font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; padding:.5rem .85rem;
+  background:transparent; border:1px solid var(--line); border-radius:2px; cursor:pointer; transition:.15s;
+}
+.btn:hover{border-color:var(--brass); color:var(--brass-bright)}
+.btn-primary{background:var(--brass-soft); border-color:var(--brass); color:var(--brass-bright)}
+.btn-primary:hover{background:rgba(198,138,58,.22)}
+
+/* ---------- shell ---------- */
+.shell{max-width:1500px; margin:0 auto; padding:clamp(.9rem,2vw,1.6rem); display:grid; gap:clamp(.9rem,1.6vw,1.5rem);
+  grid-template-columns:minmax(0,15rem) minmax(0,1fr) minmax(0,25rem); align-items:start}
+@media (max-width:1240px){ .shell{grid-template-columns:minmax(0,1fr) minmax(0,23rem)} .rail{grid-column:1/-1} }
+@media (max-width:900px){ .shell{grid-template-columns:minmax(0,1fr)} }
+
+/* ---------- rail ---------- */
+.rail{position:sticky; top:4.6rem}
+@media (max-width:1240px){ .rail{position:static} }
+.rail ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
+@media (max-width:1240px){ .rail ol{flex-direction:row; flex-wrap:wrap} }
+.step-btn{
+  width:100%; display:flex; gap:.6rem; align-items:baseline; text-align:left; cursor:pointer;
+  background:transparent; border:1px solid transparent; border-left:2px solid var(--line-soft);
+  padding:.5rem .6rem; border-radius:0; transition:.15s; font-family:var(--body); font-size:.9rem;
+}
+.step-btn:hover{background:var(--surface); border-left-color:var(--ink-dim)}
+.step-btn[aria-current="true"]{background:var(--surface); border-left-color:var(--brass); color:var(--brass-bright)}
+.step-btn .num{font-family:var(--mono); font-size:.62rem; color:var(--ink-dim); letter-spacing:.08em; min-width:1.9em}
+.step-btn[aria-current="true"] .num{color:var(--brass)}
+.step-btn .pick{display:block; font-size:.68rem; color:var(--ink-muted); font-family:var(--mono); margin-top:.15rem}
+.step-btn.done .num::after{content:" ✓"; color:var(--ok)}
+
+/* ---------- main column ---------- */
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:3px}
+.panel-hd{padding:1rem 1.1rem .85rem; border-bottom:1px solid var(--line-soft)}
+.panel-hd h2{font-size:1.5rem}
+.panel-hd .eyebrow{display:block; margin-bottom:.35rem}
+.panel-hd p{color:var(--ink-muted); margin-top:.5rem; max-width:62ch; font-size:.88rem}
+.panel-bd{padding:1rem 1.1rem 1.2rem}
+
+.cards{display:grid; gap:.7rem; grid-template-columns:repeat(auto-fill,minmax(14rem,1fr))}
+.card{
+  position:relative; text-align:left; cursor:pointer; background:var(--ground-2);
+  border:1px solid var(--line-soft); border-radius:3px; padding:.75rem .85rem; transition:.15s;
+  font-family:var(--body); font-size:.85rem; color:var(--ink); display:flex; flex-direction:column; gap:.4rem;
+}
+.card:hover{border-color:var(--ink-dim); background:var(--surface-2)}
+.card[aria-pressed="true"]{border-color:var(--brass); background:linear-gradient(180deg,var(--brass-soft),transparent 70%)}
+.card h3{font-size:1.02rem; font-family:var(--display)}
+.card .mech{font-family:var(--mono); font-size:.67rem; line-height:1.5; color:var(--ink-muted); display:flex; flex-direction:column; gap:.15rem}
+.card .mech b{color:var(--ink); font-weight:500}
+.card .flavour{color:var(--ink-muted); font-size:.8rem; font-style:italic}
+.card .tag{position:absolute; top:.6rem; right:.7rem; font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--violant)}
+.card.taken{opacity:.45}
+
+.detail{margin-top:1rem; border-top:1px solid var(--line-soft); padding-top:1rem; display:flex; flex-direction:column; gap:.9rem}
+.field{display:flex; flex-direction:column; gap:.3rem}
+.field .hint{font-size:.78rem; color:var(--ink-dim)}
+input[type=text],textarea,select{
+  font-family:var(--body); font-size:.87rem; color:var(--ink); background:var(--ground);
+  border:1px solid var(--line); border-radius:2px; padding:.45rem .55rem; width:100%;
+}
+select{font-family:var(--mono); font-size:.75rem}
+textarea{resize:vertical; min-height:3.4rem}
+.chips{display:flex; flex-wrap:wrap; gap:.35rem}
+.chip{
+  font-family:var(--mono); font-size:.66rem; padding:.28rem .5rem; border:1px dashed var(--line);
+  background:transparent; border-radius:2px; cursor:pointer; color:var(--ink-muted);
+}
+.chip:hover{border-style:solid; border-color:var(--brass); color:var(--brass-bright)}
+.row{display:flex; gap:.6rem; flex-wrap:wrap; align-items:flex-end}
+.row>*{flex:1 1 12rem}
+
+/* attributes */
+.attrs{display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:.6rem}
+.attr{border:1px solid var(--line-soft); background:var(--ground-2); border-radius:3px; padding:.6rem .7rem; display:flex; flex-direction:column; gap:.45rem}
+.attr .val{font-family:var(--mono); font-size:1.6rem; line-height:1; font-variant-numeric:tabular-nums}
+.stepper{display:flex; gap:.3rem; align-items:center}
+.stepper button{width:1.7rem; height:1.7rem; border:1px solid var(--line); background:transparent; border-radius:2px; cursor:pointer; font-size:.9rem; line-height:1}
+.stepper button:hover:not(:disabled){border-color:var(--brass); color:var(--brass-bright)}
+.stepper button:disabled{opacity:.3; cursor:not-allowed}
+
+/* ---------- sheet ---------- */
+.sheet{position:sticky; top:4.6rem; background:var(--surface); border:1px solid var(--line); border-radius:3px; max-height:calc(100vh - 6rem); overflow:auto}
+@media (max-width:900px){ .sheet{position:static; max-height:none} }
+.sheet-hd{padding:.9rem 1rem .8rem; border-bottom:1px solid var(--line-soft); background:linear-gradient(180deg,var(--surface-2),var(--surface))}
+.sheet-hd h2{font-size:1.2rem; font-style:italic}
+.sheet-hd .sub{font-family:var(--mono); font-size:.65rem; color:var(--ink-muted); margin-top:.25rem; letter-spacing:.04em}
+.sect{padding:.8rem 1rem; border-bottom:1px solid var(--line-soft)}
+.sect:last-child{border-bottom:0}
+.sect>.lbl{display:block; margin-bottom:.5rem}
+.kv{display:flex; justify-content:space-between; gap:.6rem; font-size:.82rem; padding:.16rem 0}
+.kv .k{color:var(--ink-muted)}
+.kv .v{font-family:var(--mono); font-size:.75rem; text-align:right}
+
+.menace{display:flex; align-items:center; gap:.55rem; padding:.28rem 0}
+.menace .name{font-family:var(--mono); font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; width:6.2em; color:var(--ink-muted)}
+.boxes{display:flex; gap:3px}
+.boxes i{width:.75rem; height:.75rem; border:1px solid currentColor; border-radius:1px; display:block}
+.menace .ov{margin-left:auto; font-family:var(--mono); font-size:.68rem; color:var(--ink-muted); font-variant-numeric:tabular-nums}
+.m-wounds{color:var(--wounds)} .m-nightmares{color:var(--nightmares)}
+.m-scandal{color:var(--scandal)} .m-suspicion{color:var(--suspicion)}
+
+.skillgrid{display:flex; flex-direction:column; gap:.5rem}
+.skillgroup .lbl{color:var(--ink-dim); display:block; margin-bottom:.2rem}
+.skillrow{display:flex; align-items:baseline; gap:.5rem; font-size:.8rem; padding:.1rem 0}
+.skillrow .sname{flex:1}
+.skillrow.has .sname{color:var(--ink)}
+.skillrow:not(.has) .sname{color:var(--ink-dim)}
+.rank{font-family:var(--mono); font-size:.65rem; letter-spacing:.06em; text-transform:uppercase; padding:.1rem .35rem; border:1px solid var(--line); border-radius:2px; color:var(--ink-muted)}
+.rank.r1{border-color:rgba(198,138,58,.4); color:var(--brass)}
+.rank.r2{border-color:var(--brass); color:var(--brass-bright); background:var(--brass-soft)}
+.rank.r3{border-color:var(--violant); color:var(--violant); background:rgba(140,111,209,.12)}
+.rank-note{font-family:var(--mono); font-size:.6rem; color:var(--ink-dim)}
+
+.obs{display:flex; flex-direction:column; gap:.35rem}
+.obsrow{display:flex; gap:.5rem; align-items:baseline; font-size:.82rem; border-left:2px solid var(--violant); padding-left:.5rem}
+.obsrow .os{font-family:var(--mono); font-size:.7rem; color:var(--violant)}
+.obsrow .od{color:var(--ink-muted); font-size:.76rem}
+.meter{height:5px; background:var(--ground); border:1px solid var(--line); border-radius:2px; overflow:hidden; margin-top:.45rem}
+.meter i{display:block; height:100%; background:var(--violant)}
+.meter.over i{background:var(--bad)}
+
+.notice{display:flex; gap:.5rem; font-size:.78rem; padding:.4rem .5rem; border-radius:2px; border:1px solid var(--line); background:var(--ground-2); align-items:flex-start}
+.notice+.notice{margin-top:.35rem}
+.notice .dot{width:.45rem; height:.45rem; border-radius:50%; margin-top:.42rem; flex:none}
+.notice.err{border-color:rgba(192,86,74,.5)} .notice.err .dot{background:var(--bad)}
+.notice.warn{border-color:rgba(210,160,63,.45)} .notice.warn .dot{background:var(--warn)}
+.notice.ok{border-color:rgba(94,158,122,.4)} .notice.ok .dot{background:var(--ok)}
+
+.bonds{display:flex; flex-direction:column; gap:.4rem; margin-top:.4rem}
+.bondrow{display:flex; gap:.4rem; align-items:center}
+.bondrow input{flex:1 1 12rem}
+.bondrow select{flex:0 0 11rem}
+.bondrow .chip{flex:0 0 auto}
+.slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(13rem,1fr)); gap:.6rem}
+.slot{position:relative; padding-right:3.2rem; text-align:left; display:flex; flex-direction:column; gap:.25rem; cursor:pointer;
+  background:var(--ground-2); border:1px solid var(--line-soft); border-left:2px solid var(--line); border-radius:2px;
+  padding:.6rem .7rem; font-family:var(--body); color:var(--ink); transition:.15s}
+.slot .lbl{padding-right:.2rem}
+.slot:hover{border-color:var(--ink-dim)}
+.slot.active{border-left-color:var(--brass); background:var(--surface-2)}
+.slot.full .sval{color:var(--ink)}
+.slot .sval{font-size:.85rem; color:var(--ink-dim)}
+.slot .sclear{position:absolute; top:.55rem; right:.6rem; font-family:var(--mono); font-size:.58rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-dim); cursor:pointer}
+.slot .sclear:hover{color:var(--bad)}
+.chip.on{border-style:solid; border-color:var(--brass); color:var(--brass-bright); background:var(--brass-soft)}
+.gearlist{display:grid; grid-template-columns:repeat(auto-fill,minmax(16rem,1fr)); gap:.6rem; margin-top:.6rem}
+.gcard{border:1px solid var(--line-soft); background:var(--ground-2); border-radius:2px; padding:.6rem .7rem}
+.gcard.chosen{border-color:var(--brass); background:linear-gradient(180deg,var(--brass-soft),transparent 70%)}
+.gcard .ghd{display:flex; flex-direction:column; gap:.1rem}
+.gname{background:none; border:0; padding:0; text-align:left; font-family:var(--display); font-size:1rem; color:var(--ink); cursor:pointer}
+.gname:hover{color:var(--brass-bright)}
+.gmeta{font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim)}
+.gtag{font-size:.79rem; color:var(--ink-muted); font-style:italic; margin:.3rem 0 .1rem}
+.gcard ul,.specialref ul{margin:.25rem 0 0; padding-left:1.05rem}
+.gcard li,.specialref li{font-size:.77rem; color:var(--ink-muted); margin-bottom:.15rem}
+.track{margin-left:auto; display:flex; align-items:center; gap:.2rem; font-family:var(--mono); font-size:.7rem; font-variant-numeric:tabular-nums}
+.track .tval{min-width:1.2em; text-align:right; color:var(--ink)}
+.track .tsep,.track .tmax{color:var(--ink-dim)}
+.track.out .tval{color:var(--bad); font-weight:600}
+.tbtn{width:1.05rem; height:1.05rem; line-height:1; padding:0; background:transparent; border:1px solid var(--line); border-radius:1px; cursor:pointer; color:var(--ink-muted); font-size:.7rem}
+.tbtn:hover{border-color:currentColor}
+.charges{display:inline-flex; gap:3px; margin-left:.45rem; vertical-align:middle}
+.chg{width:.62rem; height:.62rem; padding:0; border:1px solid var(--violant); background:transparent; border-radius:1px; cursor:pointer}
+.chg.on{background:var(--violant)}
+.traits{display:flex; flex-direction:column; gap:.4rem}
+.trait{font-size:.78rem; color:var(--ink-muted); display:flex; flex-direction:column; gap:.22rem}
+.trait .tsrc{font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--brass)}
+.sdet{margin:.15rem 0 .5rem}
+.sdet summary{font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); cursor:pointer}
+.sdet summary:hover{color:var(--brass)}
+.sdet p{font-size:.76rem; color:var(--ink-muted); margin:.35rem 0 0}
+.sdet b{color:var(--ink); font-weight:600}
+.specialref{display:flex; flex-direction:column; gap:.5rem; border:1px solid var(--line-soft); border-left:2px solid var(--brass); background:var(--ground-2); padding:.7rem .8rem; border-radius:2px}
+.specialref h4{font-size:1rem; font-family:var(--display)}
+.specialref p{font-size:.8rem; color:var(--ink-muted); margin:0}
+.specialref .lbl{color:var(--brass)}
+.specialref ul{margin:.1rem 0 0; padding-left:1.1rem; font-size:.78rem; color:var(--ink-muted)}
+.legend dl{margin:0; display:flex; flex-direction:column; gap:.45rem}
+.legend dt{font-family:var(--mono); font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--brass)}
+.legend dd{margin:.1rem 0 0; font-size:.78rem; color:var(--ink-muted)}
+.legend b{color:var(--ink); font-weight:600}
+
+.foot{max-width:1500px; margin:0 auto; padding:1rem clamp(.9rem,2vw,1.6rem) 2.5rem; color:var(--ink-dim); font-size:.75rem}
+.modal{position:fixed; inset:0; background:rgba(8,10,13,.78); z-index:80; display:flex; align-items:center; justify-content:center; padding:1.2rem}
+.modal[hidden]{display:none}
+.modal-box{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:1rem 1.1rem; width:min(46rem,100%); max-height:85vh; display:flex; flex-direction:column; gap:.6rem}
+.modal-hd{display:flex; align-items:center; justify-content:space-between; gap:1rem}
+.modal-hd h2{font-size:1.2rem}
+.modal-box textarea{flex:1; min-height:14rem; font-family:var(--mono); font-size:.7rem; line-height:1.5}
+.modal-actions{display:flex; gap:.5rem; justify-content:flex-end}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:1.4rem; background:var(--surface-2); border:1px solid var(--brass);
+  color:var(--brass-bright); font-family:var(--mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:.55rem .9rem; border-radius:2px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+#print-sheet{display:none}
+@media print{
+  .masthead,.shell,.foot,.toast,.modal{display:none !important}
+  #print-sheet{display:block}
+  @page{margin:14mm}
+  html,body{background:#fff !important; color:#141414 !important}
+  #print-sheet{font-family:var(--body); color:#141414; font-size:10pt; line-height:1.42}
+  #print-sheet h1{font-family:var(--display); font-size:22pt; margin:0 0 2pt}
+  #print-sheet .p-sub{font-family:var(--mono); font-size:8pt; letter-spacing:.06em; color:#555; margin-bottom:8pt}
+  #print-sheet .p-look{font-style:italic; color:#333; margin:0 0 10pt}
+  #print-sheet h2{font-family:var(--mono); font-size:8pt; letter-spacing:.16em; text-transform:uppercase; color:#7a5418;
+    border-bottom:.6pt solid #c9b48a; padding-bottom:2pt; margin:12pt 0 5pt}
+  #print-sheet .p-cols{display:grid; grid-template-columns:1fr 1fr; gap:10pt 18pt}
+  #print-sheet .p-kit{columns:2; column-gap:18pt}
+  #print-sheet table{width:100%; border-collapse:collapse; font-size:9pt}
+  #print-sheet td,#print-sheet th{text-align:left; padding:1.5pt 0; vertical-align:top}
+  #print-sheet th{font-family:var(--mono); font-size:7.5pt; letter-spacing:.08em; text-transform:uppercase; color:#666; font-weight:400}
+  #print-sheet .num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+  #print-sheet .box{display:inline-block; width:8pt; height:8pt; border:.7pt solid #444; margin-right:2pt; vertical-align:-1pt}
+  #print-sheet .box.on{background:#444}
+  #print-sheet ul{margin:0; padding-left:11pt}
+  #print-sheet li{margin-bottom:2pt}
+  #print-sheet .p-item{margin-bottom:5pt; break-inside:avoid}
+  #print-sheet .p-item b{font-weight:600}
+  #print-sheet .p-src{font-family:var(--mono); font-size:7pt; letter-spacing:.08em; text-transform:uppercase; color:#8a6a2f}
+  #print-sheet .p-block{break-inside:avoid}
+  #print-sheet .p-flow{break-inside:auto}
+  #print-sheet .p-rule{color:#555; font-size:8.5pt; border-top:.5pt solid #ddd; margin-top:10pt; padding-top:5pt}
+}
+</style>
+</head>
+<body>
+
+
+<header class="masthead">
+  <div class="masthead-in">
+    <div class="wordmark">
+      <h1>Fallen London Character Ledger</h1>
+      <span class="lbl">Character creation &middot; corebook preview, Aug 2026</span>
+    </div>
+    <div class="mast-actions">
+      <button class="btn" id="btn-example" type="button">Load example</button>
+      <button class="btn" id="btn-reset" type="button">Clear</button>
+      <button class="btn" id="btn-load" type="button">Load…</button>
+      <button class="btn" id="btn-save" type="button">Save file</button>
+      <button class="btn btn-primary" id="btn-pdf" type="button">Export PDF</button>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+      <input type="file" id="cat-input" accept=".md,.markdown,.txt,.json,text/markdown,text/plain,application/json" hidden>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Character creation steps">
+    <ol id="rail"></ol>
+  </nav>
+
+  <main>
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lbl eyebrow" id="step-eyebrow"></span>
+        <h2 id="step-title"></h2>
+        <p id="step-intro"></p>
+      </div>
+      <div class="panel-bd" id="step-body"></div>
+    </section>
+  </main>
+
+  <aside class="sheet" aria-label="Live character sheet">
+    <div class="sheet-hd">
+      <h2 id="sheet-name">An Unnamed Party</h2>
+      <div class="sub" id="sheet-line">no identities chosen</div>
+    </div>
+    <div id="sheet-body"></div>
+  </aside>
+</div>
+
+<footer class="foot">
+  Built from <em>Fallen London: the Roleplaying Game</em>, corebook FULL preview (2026&#8209;08&#8209;06) &mdash; chapters&nbsp;2&ndash;4.
+  Option text is condensed to its mechanical gist; the book is the authority, and every suggestion here is negotiable with your GM.
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-hd"><h2 id="modal-title">Save or load your ledger</h2>
+      <button class="btn" id="modal-close" type="button">Close</button></div>
+    <p id="modal-note" class="hint"></p>
+    <textarea id="modal-text" spellcheck="false" aria-label="Character data"></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="modal-file" type="button">Choose a file…</button>
+      <button class="btn" id="modal-selectall" type="button">Select all</button>
+      <button class="btn btn-primary" id="modal-apply" type="button">Load this text</button>
+    </div>
+  </div>
+</div>
+<div id="print-sheet" aria-hidden="true"></div>
+
+<script>
+"use strict";
+/* ============================ DATA ============================ */
+const ATTRS = ["Dangerous","Persuasive","Shadowy","Watchful"];
+const SKILLS = {
+  Dangerous:["Coercion","Force","Lethality"],
+  Persuasive:["Cogency","Expression","Negotiation"],
+  Shadowy:["Guile","Occlusion","Precision"],
+  Watchful:["Attention","Intuition","Scrutiny"]
+};
+const ALL_SKILLS = Object.values(SKILLS).flat();
+const SPECIAL_SKILLS = ["Shapeling Arts","Glasswork","Correspondence","Red Science"];
+const SPECIAL_INFO = {
+  "Correspondence":{
+    from:"Twist — Scholar of the Correspondence",
+    attr:"No fixed attribute is given; pair it with whatever the act of reading or inscribing demands.",
+    what:"The language of the stars, never meant for humans, rats, Clay Men or Rubberies. The skill is your caution and talent with sigils — reading, copying, understanding them; it grants no mastery of any particular sigil, which must be learned separately. Without it, copying a sigil will almost certainly set fire to something: your home, your hair, your mind, your shadow.",
+    limit:"Mortals can only make a law of the world more specific in a local area, or carve a precise exemption from one — not remove gravity, but reverse it in one room. Inventing a new sigil demands the finest resources and is a formidable challenge.",
+    stakes:["Can you read an existing sigil without undue consequence?","Can you copy a sigil you have seen before without altering its meaning?","Can you invent a new sigil from your understanding of others — without, say, turning permanently into light?"]},
+  "Glasswork":{
+    from:"Profession — Silverer (and the Glasswork twist)",
+    attr:"No fixed attribute. Dangerous to harm or threaten something Parabolan · Persuasive to treat with an entity · Shadowy to avoid Parabolan dangers · Watchful to get your bearings or prepare a mirror.",
+    what:"Contacting, entering, navigating and surviving Parabola, the land behind the mirrors. It covers opening the passage, communicating through it, and knowing the Is-Not itself — its routes, customs, treaties and secrets. Bargaining with a Fingerking uses Glasswork.",
+    limit:"Enter without a clear way back and you are in trouble. Even speaking to a Parabolan through a mirror from the waking world is dangerous.",
+    stakes:["Do you open the connection and traverse it as intended?","Do you reach the part of Parabola you meant to reach?","Do you avoid the unforeseen — are you sure everyone who came back is themselves, and not their reflection?"]},
+  "Red Science":{
+    from:"Twist — Red Scientist",
+    attr:"No fixed attribute is given; the work is practical, so pair it with the act.",
+    what:"Not one discipline but a scavenging of the Correspondence, the Discordance, Neathbow colours and anything else, to warp the world by manipulating the Treacheries. Skill in it is purely practical: the Red Scientist does not care how a thing works, only that it does.",
+    limit:"Three steps: propose a change and the Treachery that carries it (usually in an intermission), roll to form the plan, then do what the plan demands. The roll sets the price — Defeat: you need more information and cannot roll for that goal again until you find a new path · 1 hit: the GM names three things or experts you need · 2 hits: two · 3+ hits: one.",
+    stakes:["Can you determine a path by which you might achieve your desired end?"]},
+  "Shapeling Arts":{
+    from:"Nature — Rubbery Man · Profession — Shaper (and the Shapeling Arts twist)",
+    attr:"No fixed attribute. Dangerous for a threatening change · Persuasive for a cosmetic one · Shadowy for a secret or duplicitous one · Watchful for the complex, precise or perceptual.",
+    what:"Using deep amber to alter a being's form: sculpting faces, distending limbs, adding or removing eyes, turning skin to bone, inventing organs. The holy grail is changing not the form but the essential nature of a creature — could a human become Rubbery, or a link of the Chain be broken?",
+    limit:"Every use expends at least one resource-use of deep amber. Roughly: 1 use for a limb-sized broad change or a face-sized nuanced one · 2 for half the body broadly, or a limb nuanced · 3 for the whole body broadly, or half of it nuanced. An alteration then works like equipment — it can supply your asset die.",
+    stakes:["Do you effect the change exactly as you envisioned it?","Does the change demand more amber to finish?","Does it have unforeseen consequences?"]}
+};
+const SPECIAL_NOTE = "Special skills cannot be taken on a whim — only a character option that grants them will do. Otherwise they work like any other skill.";
+const RANKNAME = {1:"Trained",2:"Adept",3:"Master"};
+const AOENAME = {1:"Casual",2:"Veteran",3:"Esoteric"};
+const MENACES = ["Wounds","Nightmares","Scandal","Suspicion"];
+
+const NATURES = [
+  { name:"Traditional Human",
+    flavour:"The majority, in every stratum and every vocation — and the nature least defined by being one.",
+    menaces:{Wounds:[3,8],Nightmares:[3,8],Scandal:[3,8],Suspicion:[3,8]},
+    mech:["Back on Your Feet — recover on half your menace level in dice","Pick Your Poison — shift a menace level each intermission","Painful Commitment — turn a rising menace into obsession strength"],
+    bumps:[{key:"human_versatile",kind:"skillRank",cap:2,label:"Versatile Experience: one extra skill at Trained, or raise a Trained skill to Adept"}]
+  },
+  { name:"Clay Man",
+    flavour:"Nine feet of living clay out of Polythreme, mistaken for a servant by strangers.",
+    menaces:{Wounds:[4,9],Nightmares:[3,8],Scandal:[3,8],Suspicion:[2,8]},
+    mech:["Limbs of Clay — mark 1 Wound for favourable circumstances on force/endurance","Quick Fix — roll 4 dice to patch yourself with clay","Apparent Servility — ignore the first Scandal or Suspicion in a scene","Implacable — cap incoming Wounds at 2 boxes per source"]
+  },
+  { name:"Rattus faber",
+    flavour:"A talking, spanner-wielding rat; the Department of Menace Eradication does not make the distinction.",
+    menaces:{Wounds:[2,8],Nightmares:[3,8],Scandal:[4,9],Suspicion:[3,8]},
+    mech:["Rodenty Stature — size cuts both ways; +1 attribute at creation (max 2)","Verminous Reputation — hard to scandalise, hard to charm humans","Rapid Prototyping — a one-use makeshift tool each venture","Mechanically Precise — mark 1 Nightmare to have the right tool"],
+    bumps:[{key:"rattus_attr",kind:"attrBump",cap:2,label:"Rodenty Stature: +1 to one attribute, to a maximum of 2"}]
+  },
+  { name:"Rubbery Man",
+    flavour:"Squid-headed exile from Axile, gentle, shunned, and fluent in the Shapeling Arts.",
+    menaces:{Wounds:[3,8],Nightmares:[4,8],Scandal:[2,6],Suspicion:[3,6]},
+    mech:["Access to Flute Street — you can always find the way","The Ire of the Suckerless — overcome by Scandal or Suspicion at 6","Octopoidal Linguist — no English; formidable with strangers, favourable with Rubberies","Boneless — mark 1 Wound for fluid motion"],
+    grants:[{skill:"Shapeling Arts",level:2,note:"Shapeling Arts special skill"}]
+  },
+  { name:"Tomb-Colonist",
+    flavour:"Bandaged, many times dead, and still looking for a wilder end than the Grand Sanatorium.",
+    menaces:{Wounds:[3,10],Nightmares:[2,8],Scandal:[3,8],Suspicion:[4,8]},
+    mech:["Decrepit Élan — overcome by Wounds at 10, but roll for final death","Revelation — mark Nightmares for an epiphany about your past","Unpleasant Sight — mark 1 Scandal to be usefully off-putting"],
+    bumps:[
+      {key:"tomb_s1",kind:"skillRank",cap:3,label:"Lengthy Experience: raise one skill by a rank (up to Master)"},
+      {key:"tomb_s2",kind:"skillRank",cap:1,label:"Lengthy Experience: raise a second skill by a rank (up to Trained)"}],
+    aoeBonus:2, aoeNote:"Lengthy Experience grants 2 further levels of Area of Expertise"
+  }
+];
+
+const ORIGINS = [
+  ["The Clay Quarters","Tunnel-knot beneath the city; gathering-halls, Clay music, sepulchral caves for the gone-quiet.","well-worn but trusty tool|chapbook of Clay resistance songs|resilient transit trunk from Polythreme"],
+  ["The Flit","Planks and shacks over the roofs of Spite; urchins, thieves, and a fatal first misstep.","spidersilk rope|wall-biting gloves|a Sock with a Half-Brick in It"],
+  ["Flute Street","The ambery cavern below London where the Rubbery Men gather and the Flukes bathe.","pendant of deep amber|resinous pyrophone|shabby suit and yesterday's newspaper"],
+  ["The Hinterlands","The expanse between London and Hell; war-leavings, railways, secluded settlements.","season ticket on the Great Hellbound Railway|ratwork velocipede|uncannily cold fragment of the Hurlers"],
+  ["The Khanate","London's rival across the zee, child of the Fourth City, ahead of it in electricity.","electric lantern|horse-head amulets of favours owed|lacquered armour"],
+  ["Ladybones Road","The spies' quarter: Clathermont's, Tyrant's Garden, Concord Square, Hangman's Arch.","masterwork spyglass|counterfeit constable badge|spring-loaded stiletto"],
+  ["Moloch Street","Brass Embassy, infernal restaurants, and a booming soul trade.","brass ring of Hell's favour|tailoring from a decade yet to come|devilbone dice"],
+  ["Mrs. Plenty's Carnival","Year-round spectacle past the Prickfinger Wastes, paid for in moon-pearls.","bone stage costume|inexhaustible fried rubbery lumps|lucky weasel"],
+  ["The Shuttered Palace","The Traitor Empress' court: locked doors, dire secrets, and the Duchess' salon.","ornate snuff box|spidermilk slippers|glittering masquerade mask"],
+  ["Spite","Rookeries, markets and deep poverty; the Tenterhooks, Blythenhale, Doubt Street.","well-used lockpicks|squeakless boots|brass knuckledusters"],
+  ["The Surface","Reached by the Travertine Spiral or the Cumaean Canal — and, if you have not died, escapable.","mirrorcatch box|book of pressed Surface flowers|documents of a Surface authority"],
+  ["Veilgarden","Art and scandalous hedonism; the Singing Mandrake, the honey-dens, the Garden Embassy.","book of scandalous poetry|striking top hat|sword-cane"],
+  ["Venderbight","The largest tomb-colony: hushed, dusty, sepulchral, the Grand Sanatorium nearby.","concealing bandages|caged frost-moth|cellar of dusty wines"],
+  ["Watchmaker's Hill","London's edge against Bugsby's Marshes; the DME's offices, the Medusa's Head.","ratwork hunting rifle|steel-reinforced hat|hob-nailed boots"],
+  ["Wolfstack Docks","The gate to the Unterzee; the Blind Helmsman and the Masters' warehouses.","Neathglass goggles|zee-proof peligin hide coat|sturdy belaying pin"]
+].map(([name,flavour,eq])=>({name,flavour,equipment:eq.split("|")}));
+
+const P = (name,adept,trained,choice,aoe,eq,res,extra) =>
+  ({name,adept,trained,choice,aoe:aoe.split("|"),equipment:eq.split("|"),resource:res.split("|"),...(extra||{})});
+const PROFESSIONS = [
+  P("Actor","Expression","Guile",["Guile","Intuition","Cogency"],"Performance|Theatre|Intoxicants","excellent dancing shoes|luxurious cloak","makeup kit|prop flintlock",{flavour:"A working performer, skilled enough to earn paying parts."}),
+  P("Agent","Occlusion","Precision",["Force","Lethality","Precision"],"the Masters|Weapons|Gossip","ravenglass knife|book of cyphers","suitcase of blackmail material|encoded list of contacts",{flavour:"A catspaw: the eyes, ears and hands of whoever is paying."}),
+  P("Chemist","Precision","Scrutiny",["Cogency","Attention","Scrutiny"],"Toxicology|Chemistry|Medicine","portable chemistry kit|poison-tipped umbrella","vial of universal solvent|panacea pill in jewellery",{flavour:"Physicks, tonics, unguents and acids — hopefully not confused."}),
+  P("Crafter","Expression","Attention",["Scrutiny","Negotiation","Attention"],"[Your Craft]|Trade|High Society","finely tuned tools|letter of recommendation","a prototype tool|a sample of your work",{flavour:"An artisan of tangible things. Decide the craft."}),
+  P("Debt-Collector","Coercion","Force",["Intuition","Attention","Force"],"Crime|Commerce|[Your Neighbourhood]","tooth-marked cudgel|steel-shod boots","full ledger of debts|a frightening local reputation",{flavour:"Muscle that must be seen and named, unlike an agent."}),
+  P("Doctor","Precision","Scrutiny",["Guile","Cogency","Scrutiny"],"Medicine|Chemistry|Illicit Commerce","razor sharp scalpel|Surface-made stethoscope","fungal antiseptics|needle and catgut",{flavour:"Clean surgery or back-alley sawbones; results make the name."}),
+  P("Duellist","Lethality","Negotiation",["Attention","Coercion","Negotiation"],"Duelling|High Society|Weapons","weapon of choice|battered cuirass","bandages|flask of strong spirits",{flavour:"Duelling is illegal and, down here, survivable."}),
+  P("Freelance Detective","Scrutiny","Attention",["Precision","Coercion","Attention"],"Toxicology|Law|Illicit Commerce","patent scrutinizer|old case records","bottle of stain revealer|billfold of Echoes",{flavour:"Noble cases or sordid ones — the pay decides which."}),
+  P("Journalist","Scrutiny","Expression",["Attention","Cogency","Expression"],"Writing|Gossip|[Your Beat]","sketching equipment|ornate typewriter","set of notebooks|well-shared flask of spirits",{flavour:"Spin the story, back it with just enough fact."}),
+  P("Local Fixture","Guile",null,["Expression","Negotiation","Intuition"],"Intoxicants|[Your Neighbourhood]|Gossip","ratwork derringer|gifts from admirers","bottle of Greyfields 1868|lurid collection of local tales",{flavour:"Famous in one neighbourhood, and it is a full-time job.",ability:"Well-Known — mark 1 Scandal for favourable circumstances where your reputation endears you."}),
+  P("Monster-Hunter","Lethality","Coercion",["Force","Precision","Attention"],"Monsters|the Unterzee|Weapons","cured jillyfleur cloak|disconcerting false eye","tin of incorruptible biscuits|jar of sticky tar",{flavour:"Slayer of zee-monsters, and increasingly like them.",forcedTwist:"Peligin Rites"}),
+  P("Murderer for Hire","Occlusion","Lethality",["Coercion","Precision","Lethality"],"Weapons|Illicit Commerce|Law","ratwork derringer|cloak of thirsty bombazine","Wickerby's Soundless Powder|Instant Ablution Absolution",{flavour:"Temporary murder is convenient; permanence is the craft."}),
+  P("Poet","Expression","Intuition",["Cogency","Guile","Intuition"],"Poetry|Intoxicants|Veilgarden","iron quill|racy fungal-themed verse","pot of ink|bundle of semi-finished verse",{flavour:"Fed by your lines, if not enriched by them."}),
+  P("Porter","Force","Negotiation",["Guile","Occlusion","Negotiation"],"Commerce|Equipment|Crime","trunk with hidden compartments|proscribed map of prelapsarian London","flask of darkdrop coffee|blister-numbing ointment",{flavour:"Knows every route, and makes both ends pay."}),
+  P("Rat-Catcher","Attention","Occlusion",["Force","Negotiation","Occlusion"],"Architecture|Poisons|Pests","cheap vermin gun|polehook","noxious poison|assorted traps",{flavour:"Vermin-hunting, complicated by vermin that shoot back."}),
+  P("Saboteur","Occlusion","Force",["Guile","Precision","Force"],"Equipment|Explosives|the Masters","trusty crowbar|fireproof apron","satchel of explosive powder|bottle of angry bees",{flavour:"Ruin to order, without evidence of your presence."}),
+  P("Scientist","Scrutiny","Cogency",["Attention","Precision","Intuition"],"the Correspondence|the Treacheries|the Red Science|[Your Study]","prismatic lens|notes of a vanished predecessor","laboratory equipment|rubbing paper",{flavour:"Neathy potentials, at Neathy prices."}),
+  P("Shaper","Shapeling Arts","Intuition",["Lethality","Scrutiny","Intuition"],"Rubbery Men|Shapeling Arts|Anatomy|Zoology","amber-handled razor|anatomical reference works","nodule of deep amber|bandages and splints",{flavour:"A respectable face on the moulding of flesh.",forcedTwist:"Shapeling Arts",special:true}),
+  P("Silverer","Glasswork","Precision",["Attention","Intuition","Scrutiny"],"Parabola|Mirrorcrafting|the Neathbow|Illusions","osmogone-tinted goggles|treated full-size mirror","Jar of Prisoner's Honey|cartographic paper and ink",{flavour:"Oneirotect and ontological cartographer of Parabola.",forcedTwist:"Glasswork",special:true}),
+  P("Socialite","Intuition","Expression",["Guile","Attention","Expression"],"High Society|Politics|Etiquette","exquisite gown or waistcoat|venom-ruby ring","box of Prisoner's Honey|multicoloured rouge",{flavour:"Money (or debt) enough to make partygoing a career."}),
+  P("Solicitor","Cogency","Scrutiny",["Negotiation","Intuition","Scrutiny"],"Equipment|Bureaucracy|the Law","spidersilk wig|bejewelled cane","pre-filled legal paperwork|billfold of Echoes",{flavour:"The Masters' edicts tangle; someone must navigate them."}),
+  P("Thief","Occlusion","Guile",["Precision","Attention","Guile"],"Security|Illicit Commerce|Crime","sneak-thief's mask|ratwork lockpicks","favours owed by an urchin-gang|soporific smoke-powder",{flavour:"Possession is nine-tenths; the constabulary disagrees."}),
+  P("Tough","Force","Coercion",["Occlusion","Intuition","Coercion"],"Weapons|Crime|[Your Neighbourhood]","iron knuckledusters|stainless gloves","box of fungal cigars|grisly rumours of prior victims",{flavour:"They do the talking; you do the throwing."}),
+  P("Trader","Negotiation","Cogency",["Intuition","Guile","Cogency"],"Commerce|[Your Goods]|[Your Clientele]","fabricated customs-stamp|ledger of potential buyers","generous note of credit|halcyonic tonic",{flavour:"Deals everyone agrees to, that favour you slightly."}),
+  P("University Lecturer","Cogency","Guile",["Cogency","Expression","Scrutiny"],"[Your Field]|Academia|the University","stuffy scholarly books|professorial wardrobe","pleasant mushroom tobacco|assorted rare inks",{flavour:"Teach, publish, and keep the dean awake."})
+];
+
+const D = (name,ob,obDesc,required,mech,flavour) => ({name,obsession:ob,obsessionDetail:obDesc,required,mech,flavour});
+const DISPOSITIONS = [
+  D("Arrogant","Status","[What grand status will you achieve at any cost?]",true,"Resist rolls treat this obsession's strength as doubled; invoking it hands another PC a charge.","It is not egotism if you really are better."),
+  D("Atonement","Atonement","[What did you do, and to whom must you atone?]",true,"Austere — mark Wounds or Nightmares to resist at that menace's level instead.","You must constrain yourself. You must."),
+  D("Curious","Curious","prying into others' mysteries",true,"Inquisitive — mark 1 Nightmare on a hard question to know if you are being lied to.","The most delicious secrets belong to people."),
+  D("Daring","Self-Endangerment","experiencing danger",true,"Being seized clears Nightmares, or drops your Nightmares level.","To live you must court death."),
+  D("Elusive","Obscurity","hiding the truths about myself matters more than anything",true,"Turn a defeat while dodging public questions into a success by raising Scandal or Suspicion.","Most people have secrets; you are one."),
+  D("Exacting","Perfection","[What task or process must you accomplish perfectly?]",true,"Giving in to Perfection takes 2 charges instead of 1.","Mistakes are wounds, and they bleed forever."),
+  D("Forceful","Certitude","getting your way",true,"Make a public scene: mark 1 Scandal to clear 2 Nightmares.","Since you are right all the time, others ought to give way."),
+  D("Freewheeling","Freedom","[Whom do you wish to free from what?]",false,"Freewheeling Styles — a new 2-use outfit or disguise resource each venture.","Why pin yourself down, like a butterfly under glass?"),
+  D("Hedonist","Hedonism","indulging in pleasure",true,"Giving in clears Nightmares.","In a world of impermanence, pursue your own joy."),
+  D("Magnanimous","Public Magnanimity","generosity only matters if it is noticed",true,"A refreshing 3-box Magnanimous Reputation resource.","Generosity is at its best performed publicly and well."),
+  D("Melancholy","Regret","[What terrible facet of your life do you regret daily?]",true,"Mark Nightmares to convert another obsession's charges into this one.","Sadness outlines the sweetness."),
+  D("Mercenary","Greed","get more and keep what you have",false,"Paid work becomes a strength-3 obsession with 2 charges; finishing it raises every other obsession by 1.","The dirt is only a reason to raise your prices."),
+  D("Rebellious","Rebellion","[What do you rebel against, and why?]",false,"Mark 1 Nightmare to auto-resist, or to charge every obsession when you give in.","You might listen to your principal. That is all it is: listening."),
+  D("Ruthless","Dominance","[Whom or what must you become dominant over?]",false,"Excess in public: mark 2 Scandal or Suspicion to charge and immediately invoke an obsession.","Everyone must see you doing the terrible things."),
+  D("Steadfast","True to Your Word","[Why must you never renege on a promise?]",true,"A 5-box Steadfast reputation resource, lost outright if you are found to have broken your word.","Deception poisons the liar and the world around them.")
+];
+
+const ASSOCIATIONS = [
+  ["The Admiralty","London's navy and the spearhead of its expansion.","the Elder Continent|Military Code|Ships|Warfare|the Unterzee|Zee-Beasts","unexploded shells|letter of favour from an Admiral|reputation as a veteran"],
+  ["Bohemians","Veilgarden's writers, actors, musicians and painters; poor by choice.","Poetry|Drugs|Music|Painting|Sculpture|Theatre|Recreation","vial of Neathbow paint|pot of Prisoner's Honey|a louche and gaudy robe"],
+  ["The Church","Devils exist and death is negotiable; the Church adapts, and endures.","Theology|Churches|Congregations|Services","unedited King James Bible|silver cross|Mrs. Mortlake's cakes"],
+  ["The Constabulary","Protects the rich, the powerful and the Masters — and sometimes the wretched.","Law|Crime|Ladybones Road|the Masters|Toxicology","bribe-worthy pouch of Echoes|pre-written pardon|bottle of mushroom brandy"],
+  ["Criminals","The whole professional underworld: dragsmen, palmers, bit-fakers, snidesmen.","Crime|Illicit Commerce|Intoxicants|Weapons","jar of phosphorescent beetles|bottled screams|tin of mutersalt"],
+  ["The Dilmun Club","A secret society funding expeditions, chasing immortality at the Mountain of Light.","the Elder Continent|Immortality|Neathy Treasures","flowers from the Elder Continent|the club's recent magazine|account of an expedition"],
+  ["The Docks","Zailors, dockworkers, lightermen and smugglers: salty rather than criminal.","the Unterzee|Commerce|Illicit Commerce|the Docks","vial of zee-beast blood|yellow liquor of the Elder Continent|contraband love poetry"],
+  ["The Gracious Widow","London's premier smuggling syndicate. Great rewards, arbitrary rules, no questions.","Crime|Illicit Commerce|Gossip|Weapons","share in a small swift boat|bottled oblivion|pipette of peach brandy"],
+  ["Hell","The Brass Embassy and Moloch Street; the devils find you diverting.","Hell|the Iron Republic|Ironworks|Commerce","nevercold brass shards|handheld electrical contraption|perfumed gunpowder"],
+  ["High Society","Wealth, elegance, and never saying what you mean.","High Society|Fashion|Painting|Etiquette","vermillion beetle-shell makeup|scintillack snuff|bottle of Broken Giant 1844"],
+  ["The Masters of the Bazaar","Their favour is transactional, fragile, and easily withdrawn.","the Masters|the Bazaar|Law|the Ministries","writ of access|vial of tears of the Bazaar|coins from prior fallen cities"],
+  ["Revolutionaries","Socialists, anarchists, bomb-throwers, and the Liberation of Night.","Explosives|Sabotage|Patrols|Shortcuts","firebomb|magnesium matches|horn of gunpowder"],
+  ["Rubbery Men","Flute Street, Ealing Gardens, and perhaps communion with a Fluke.","Flute Street|the Shapeling Arts|Amber|Rubbery Speech","nodule of deep amber|jar of slippery secretions|sack of glim shards"],
+  ["Urchins","The rooftop gangs, and the words carried on the chimney winds.","Burglary|the Flit|Crime|Spite","bottled aeolian scream|handful of eavesdropped privacies|hook-and-line"],
+  ["The University","Summerset against Benthic, and venom expressed on the cricket pitch.","Academia|[A Subject of Inquiry]|Gossip|Correspondence","incendiary monograph|favours from a research assistant|stack of collated research"]
+].map(([name,flavour,aoe,res])=>({name,flavour,aoe:aoe.split("|"),resource:res.split("|")}));
+
+/* ---- Chapter 6: Tools of Many Trades — notable equipment & resources ---- */
+let GEAR = [{"n": "Irrigo Locket", "c": "Adornments", "k": "eq", "t": "Sometimes you even forget that it sits about your neck. Be careful not to look down.", "p": ["contain some useful tool hidden within", "hide a small object to avoid its detection"], "s": ["Once per venture, when you need a useful tool, mark 2 boxes of Nightmares to recall the locket and open it up. Any reasonable one-use resource capable of fitting in the locket might be inside. After you use the locket in this way, you must mark 2 boxes of Nightmares to refill it during an intermission and place something else inside, for use in a later venture.", "Any object small enough to be placed in the locket is nigh-undetectable by others. Mark 2 boxes of Nightmares at the end of a venture to remember it and take it out."]}, {"n": "Light-Drinking Cravat", "c": "Adornments", "k": "eq", "t": "Thirsty bombazine embroidered with spider silk, for a gleam of silver against the darkest black.", "p": ["assist in many Shadowy or stealth-focused actions", "permanently reduce your rising Suspicion", "improve your standing with certain betentacled beings"], "s": ["Whenever you would mark Suspicion, unless you are clearly cast in stark light and noticed by everyone around you, mark one fewer box.", "While wearing the cravat, you cannot have favourable circumstances in any challenge rolls using Persuasive.", "Take favourable circumstances in any positive, unaggressive social interaction with Rubbery Men."]}, {"n": "Luminous Neathglass Goggles", "c": "Adornments", "k": "eq", "t": "Glowing goggles with a hint of radium. Style over substance.", "p": ["assist in challenge rolls with Scrutiny (at the cost of your health)", "illumine the dark (and its secrets)", "intrigue and offend (respectively) the students and faculty of Benthic College and Summerset University"], "s": ["Once per venture, mark 1 box of Wounds to add 1 hit to your Scrutiny roll while in dim (or darker) conditions.", "When interacting with NPCs affiliated with Summerset University while wearing or displaying these goggles, mark an additional box of Scandal whenever you mark Scandal. You cannot have favourable circumstances in such interactions."]}, {"n": "Starveling Stole", "c": "Adornments", "k": "eq", "t": "An unnaturally long, ragged, violent, and spiteful cat that tolerates being worn as a stole in return for regular meals. Occasionally given as a gift as a sign of deep regard, obsessive rivalry, or both. Love is complicated, isn’t it?", "p": ["gain a companion that doubles as couture", "intimidate or agitate nearby Rattus faber", "flatter or burden a target you choose to bestow it upon"], "s": ["Once per venture, you may choose someone to receive your Starveling Stole for a time. If they are grateful for your gesture, they will give you a favour of their choice. If they are fond of you, they become a new connection if they weren’t already one, or they become a new mundanity, ‘Confidante’, if they were already a connection. If the target bears ill will toward you, is in a monogamous relationship, or would otherwise face scrutiny for receiving the delivery, they gain 1 level of Scandal, and at the GM’s discretion, they may sever any relationship with you, be it as a connection or mundanity. The Stole always returns to you during your next intermission, insisting upon being tended.", "The stole counts as a mundanity; you must tend to it during intermissions or risk its wrath.", "You cannot take favourable circumstances in positive, calm, or pleasant interactions with Rattus faber while wearing the Stole."]}, {"n": "Prominence: Baroque!", "c": "Intangibles (Equipment)", "k": "eq", "t": "Consistency is the hobgoblin of small minds.", "p": ["obscure the truth of your motives behind performance art", "gain favour with aficionados of the avant-garde"], "s": ["Once per venture, you may put on a facade of baffling inscrutability; mark 1 box of Nightmares to guarantee that for the rest of the scene, none may determine your intent, your next action, the truth or falsehood of anything you say, or anything about your inner states.", "When you gain this prominence, choose one association from the following: the Temple Club, the tomb- colonists, or the Calendar Council. You gain a resource tied to that association and establish a connection with a relevant NPC in that association (GM’s choice). If you already have these associations, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice), or raise a connection to an appropriate mundanity (your choice).", "You can no longer resist your obsessions. Whenever you are seized by one, you automatically succumb to its siren song."], "g": "Raise Nightmares to 5 or higher with an utterly inscrutable public action or incident.", "l": "Lower Nightmares to 0."}, {"n": "Prominence: Bizarre", "c": "Intangibles (Equipment)", "k": "eq", "t": "No one knows quite what to make of your possessions and associations.", "p": ["increase your Scandal", "gain favour with certain outsiders"], "s": ["Whenever you would mark Scandal, mark an additional box.", "When you gain this prominence, choose one association from the following: the Bohemians, the Urchins, or the Rubbery Men. You gain a resource tied to that association (GM’s choice) and establish a connection with a relevant NPC in that association (GM’s choice). If you already have an association with that group, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice) or raise a connection to an appropriate mundanity (your choice)."], "g": "Raise Scandal to level 5 or higher by doing something bizarre in public.", "l": "Reduce Scandal to 0."}, {"n": "Prominence: Dreaded", "c": "Intangibles (Equipment)", "k": "eq", "t": "Your possessions and associates demonstrate you’re someone to be avoided.", "p": ["increase your Suspicion", "gain favour with certain reprobates"], "s": ["Whenever you would mark Suspicion, mark one additional box.", "When you gain this prominence, choose one association from the following: Criminals, Hell, or the Gracious Widow. You gain a resource tied to that association (GM’s choice) and establish a connection with a relevant NPC in that association (GM’s choice). If you already have an association with that group, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice), or raise a connection to an appropriate mundanity (your choice)."], "g": "Raise Suspicion to level 5 or higher by doing something frightening, dangerous, and threatening in public.", "l": "Reduce Suspicion to 0."}, {"n": "Prominence: Elusive!", "c": "Intangibles (Equipment)", "k": "eq", "t": "None can snare you.", "p": ["gain advantages during pursuits", "gain favour with those who appreciate a good disappearing act"], "s": ["Once per venture, you can draw off any foes or antagonists into a pursuit directly focused on you, leaving any companions free to act without attention. During that chase, if you make any rolls, you may take favourable circumstances on all those rolls.", "When you gain this prominence, choose one association from the following: the Great Game, the Fingerkings, or the Cats of Parabola. You gain a resource tied to that association and establish a connection with a relevant NPC in that association (GM’s choice). If you already have these associations, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice), or raise a connection to an appropriate mundanity (your choice)."], "g": "Escape from any group of pursuers, when they know your name and face, on at least three separate occasions.", "l": "Be caught."}, {"n": "Prominence: Respectable", "c": "Intangibles (Equipment)", "k": "eq", "t": "Your possessions and associates demonstrate you’re someone to be respected.", "p": ["curry favour with those who uphold the establishment", "keep Scandal and Suspicion at bay", "accrue to enmity of those outside your social circles"], "s": ["When you would mark Scandal or Suspicion, mark one fewer.", "When you gain this prominence, choose one association from the following: the Church, the Constables, or Society. You gain a resource tied to that association (GM’s choice) and establish a connection with a relevant NPC in that association (GM’s choice). If you already have these associations, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice), or raise a connection to an appropriate mundanity (your choice).", "You may no longer initiate or improve connections with Revolutionaries, Bohemians, Urchins, Criminals, the Docks, or the Gracious Widow."], "g": "Make an impressive showing at a gathering or public setting associated with respectable types, all while your Suspicion and Scandal add up to 2 or less, total.", "l": "Raise Scandal or Suspicion to 5 or higher."}, {"n": "Prominence: Savage!", "c": "Intangibles (Equipment)", "k": "eq", "t": "None shall stand before you.", "p": ["intimidate even the toughest of toughs", "gain favour with forces who are similarly vicious"], "s": ["Whenever you would mark Scandal, mark an additional box.", "Choose one association from the following: the Docks, the Calendar Council, or the Great Hellbound Railway. You gain the resource tied to that association and establish a connection with a relevant NPC in that association (GM’s choice). If you already have these associations, instead choose one: gain an additional connection with a relevant NPC from that group (GM’s choice), or raise a connection an appropriate mundanity (your choice).", "Once per venture, mark 1 box of Scandal to scare off a susceptible individual or group."], "g": "Commit a truly heinous deed in view of enough eyes for the reputation to spread across the city.", "l": "Show mercy to someone and have word of the act spread."}, {"n": "Coolflame Quill", "c": "Tools", "k": "eq", "t": "As you hold aloft this immaculate quill, a corona of flame flickers merrily around it, yet both feather and hand remain unharmed. It writes in the ash of incinerated falsehoods, and its fire will never die.", "p": ["test the coherence of your written arguments", "better tolerate the flammability of the Correspondence", "improve your understanding of Mithridacy"], "s": ["While you hold this quill, treat yourself as having Area of Expertise in Mithridacy at one level higher than normal.", "Mark 1 Nightmare to pen up to three statements and a conclusion drawn from those statements. The GM will tell you which, if any, parts your quill fails to write; these are the parts of your ideas that you should abandon as false.", "When you study or transcribe Correspondence, add an automatic hit to any challenge rolls."]}, {"n": "Lucky Devilbone Die", "c": "Tools", "k": "eq", "t": "Does Hell load its dice? With what? Gunpowder?", "p": ["improve your luck", "gamble", "gain audience with a devil"], "s": ["Once per venture, when you roll a defeat, you may reroll any number of dice. If you do, during the next intermission, expect a visit from a devilish emissary to negotiate compensation for your continued success and use of the Lucky Devilbone Die."]}, {"n": "The Neathy Tarot", "c": "Tools", "k": "eq", "t": "Portable portents to be concealed in your glove for easy consultation. Good for omens and signals from the beyond. Prone to melodramatic pronouncements of tangled and improbable romance.", "p": ["predict the nature of a future event", "decode messages that filter through the Veil", "fascinate occultists and their sympathizers"], "s": ["Once per venture, you may draw a card from your deck. Roll 1d6. On a 1, the card is unlucky; on 2’s and 3’s the card is ominous; on 4’s and 5’s, the card is portentous; on 6’s, the card is lucky. The GM will reveal information based on the nature of the card:", "For an unlucky card, the GM will reveal a terrible consequence that looms over you. If you miss a challenge roll, you may claim that terrible consequence and have it come to pass (if the GM agrees that it makes sense in the situation); when you do, you may lower your level of Nightmares by 2 in relief, or you may claim an obsession, ‘Predicting the Worst’, at strength 1 (if you are able, reducing other obsessions as needed) or raise a similarly worded obsession by 1.", "For an ominous card, the GM will reveal a premonition of an upcoming challenge through sense, emotion, colour, and feeling. When that forewarned challenge comes to pass, you may use this equipment to gain a bonus die, no matter the situation.", "For a portentous card, the GM will reveal a premonition of an ally, asset, or other resource that could help you achieve your current goals; you may ask the GM one question about what you see, and they will answer honestly.", "For a lucky card, you see a windfall of victories showered upon you. Choose one attribute; once during the rest of this venture, you can add 1 hit to a challenge roll made with that attribute, but only if you already have at least 1 hit on that roll."]}, {"n": "Nuncian Pocket Watch", "c": "Tools", "k": "eq", "t": "The case is engraved with a little postman holding a rat aloft, along with a brief motto inscribed on the back: ‘NO WORD LOST’. Inside, you find an ornate, miniature set of lockpicks.", "p": ["gain entry into buildings and domiciles – for entirely ‘official’ purposes, of course", "boast of (or concoct wholesale) an affiliation with Postmen", "adorn your outfit with a dignified accessory"], "s": ["When you claim an affiliation with the Postmen while displaying this watch, you can take favourable circumstances to explain away your presence in restricted settings. If you ever get a defeat while claiming such an affiliation, immediately gain obsession, ‘No Word Lost’, at strength 1, or increase its strength by one (reducing or adjusting other obsessions as needed). You now feel the call to return lost words to Nuncio."]}, {"n": "Reliquary of St. Joshua", "c": "Tools", "k": "eq", "t": "A portable silver reliquary of St. Joshua, patron of spies. The lid is hinged, and the interior lined in irrigo’d velvet. A relic must lie inside – a fingerbone? The irrigo means you’ll never remember what it is.", "p": ["become your concern’s sin-eater", "manipulate others’ rememberings, for the sake of mercy or your own gain", "enlist in the Great Game (or draw its agents’ attention)"], "s": ["gain connection with the Great Game (Midnighters)", "When you want to alter someone’s recollections, you may use the Reliquary and perform the Midnighter rites, if you know them; alternatively, sufficient exposure will do, though forcing someone likely leads to a struggle. Whenever you do this or open the châsse in general, those affected mark 1 box of menaces: Irrigo – including you."]}, {"n": "Faceted Decanter of Drownie Effluvia", "c": "Weapons", "k": "eq", "t": "It has, mercifully, been bottled. Apparently this fluid coats the waters above Dahut, the City of Peace. Is it tears? Song-residue?", "p": ["incapacitate or distract a target with melancholia (a drop)", "injure a target with a broken heart (two drops)", "lure a target into the Zee (three or more drops)"], "s": ["Take a drop before making a challenge roll with Cogency or Expression to automatically add 1 hit to your roll. After you take a drop, take at strength 1 or increase by 1 strength an obsession, ‘Melancholy’, adjusting your obsessions as needed. Then, mark 2 boxes of Nightmares for every level of strength of ‘Melancholy’ you currently have. You may automatically decrease your ‘Melancholy’ obsession by 1 level during each intermission."]}, {"n": "Leviathan Bone Knife", "c": "Weapons", "k": "eq", "t": "Scrimshawed from the leaden bones of a zee-beast. The black, dense material lends itself to exact and thoughtful cuts, whether in dissection or in vivisection.", "p": ["cut and slice something (like flesh)", "attempt to reason with the Chelonites (or hide among them)"], "s": ["When you use this knife to cut something with Precision or Lethality, mark 1 box of Nightmares to add 1 hit before you roll.", "When bearing this knife, any challenge rolls you make with Persuasive face formidable difficulty.", "When you unsheathe this weapon in public or before anyone whose word would spread, mark Scandal."]}, {"n": "Mesmeric Parasol", "c": "Weapons", "k": "eq", "t": "The translucent canopy shimmers in rippling stripes. Those caught in its shade are compelled to slack-jawed honesty.", "p": ["unravel truth from lies", "deter eavesdroppers and snoops", "increase your (and others’) Nightmares"], "s": ["Once per venture, mark 3 boxes of Nightmares to compel a target beneath the Parasol to admit a searing truth of interest to you; they also mark 3 boxes of Nightmares.", "While carrying the Parasol, any challenge rolls you make using Occlusion face formidable difficulty."]}, {"n": "Resinous Pyrophone", "c": "Weapons", "k": "eq", "t": "A particularly hazardous instrument or just a tuneful cigarette lighter? Singularly melodious. Exceptionally sticky. Occasionally incendiary.", "p": ["gain favour with Rubbery Men", "immolate your opponents", "provide a weird music and a challenge to master"], "s": []}, {"n": "Retrofitted Ratting Piece", "c": "Weapons", "k": "eq", "t": "Guarantee the Utter Devastation of the Murine Foeman! Accurate at a Distance of Numerous Yards! Stock may be Employed as a Cudgel against Rats with Pellet-Proof Hides! Includes Fold-Out Sighting Tools and Spoor Store!", "p": ["engage your enemies from a safe distance", "intimidate Rattus faber, Cavies, and other manner of pests", "enhance your ability to surveil a scene"], "s": ["While carrying or using this weapon, any challenge rolls using Occlusion are automatically formidable challenges.", "While using this weapon to observe subjects at a distance, so long as you have any ranks in Scrutiny, treat it as one rank higher. If it was already at Master rank, double its bonus.", "While using this weapon to carefully shoot at targets at a distance, so long as you have any ranks in Precision, treat it as one rank higher. If it was already at Master rank, double its bonus.", "While carrying or using this weapon, you have fortunate circumstances on any aggressive interactions with Rattus faber and similar beings, and you face formidable difficulty in any positive, kind, or friendly interactions with the same beings."]}, {"n": "Salt-Filled Hourglass", "c": "Weapons", "k": "eq", "t": "Time on loan. Yours wasn’t enough; someone else’s will have to do.", "p": ["give yourself more time in crucial situations"], "s": ["Once per venture, turn your hourglass to gain more time, usually the equivalent of one segment of a clock in a conflict like a chase or an investigation or anything equivalent.", "While you hold the Salt-Filled Hourglass, the person whose time is held inside will be hunting you."]}, {"n": "Spiked Rosary", "c": "Weapons", "k": "eq", "t": "A handy accoutrement that allows you to hurt people and feel good about it at the same time.", "p": ["gain favour with those affiliated with the Sisterhood", "reduce Nightmares", "bind, trip, or otherwise disable a target"], "s": ["Throw the spiked rosary to bind an opponent and prevent them from moving; to remove it with any speed, they must mark Wounds boxes equal to double the number of hits you rolled.", "If you hold the rosary tight and pray over a willing, injured ally on a site of combat, say what you pray for and whom you pray to. Mark 1 box of Wounds as the spikes pierce your hands, then reduce both yours and your ally’s Nightmares by 1."]}, {"n": "Verdant Hairpin", "c": "Weapons", "k": "eq", "t": "Budding flowers and a heart-piercing point.", "p": ["transport an enemy to Parabola", "gain an aura of unease", "deter unwanted affections"], "s": ["When you stab someone directly in the heart with the Verdant Hairpin, they are immediately transported to Parabola, where they remain until they find a means to return. If you do this, gain 1 level of Nightmares. If you do this in front of any kind of public audience, also gain 1 level of Suspicion and 1 level of Scandal."]}, {"n": "Anning’s Patent Ribcage Breastplate", "c": "Garb & Attire", "k": "eq", "t": "It’s a bit too large to be human. Assembled with wires and fasteners so it can hinge open and engulf your torso. The edges of the bones are ever-so slightly serrated, like a shark’s tooth.", "p": ["increase your knowledge of Monstrous Anatomy", "reduce Wound accumulation", "pronounce your penchant for palaeontological paraphernalia"], "s": ["Gain the Area of Expertise in Monstrous Anatomy; if you already have the Area of Expertise in Monstrous Anatomy, advance it by one level. If your Area of Expertise in Monstrous Anatomy is already Esoteric, then instead you may mark 1 box of Nightmares whenever confronted by any kind of strange creature to immediately ask the GM any one question about it, and they will answer honestly.", "When you would mark more than 1 box of Wounds, mark one fewer."]}, {"n": "Apiarist’s Coronet Jewel", "c": "Garb & Attire", "k": "eq", "t": "Worn as a brooch or pendant, it is said this sultry jewel adorned the coronet of the Grand Devil, the Apiarist. When Hell rose up, the crown jewels of its old aristocracy were distributed among its brave revolutionaries.", "p": ["deepen your understanding of (and reliance upon) Prisoner’s Honey", "command the dreams of the honey-mazed", "earn the favor of a devil by giving them the jewelry"], "s": ["When you first don this jewel, gain the obsession, ‘Honey’, at strength 1 (adjusting any other obsessions as needed). You can never lose this obsession unless the coronet is destroyed.", "When acting under the effects of Prisoner’s Honey and moving through dreams, roll one additional die on all challenge rolls."]}, {"n": "Beast-Carved Bracer", "c": "Garb & Attire", "k": "eq", "t": "Hailing from hundred-tongued Caution, the City of Beasts: a band of blood-red amber, anchors to an unchanged self.", "p": ["increase your Shapeling Arts knowledge", "garner attention from the Thief-of-Faces", "improve your standing with beasts"], "s": ["Gain the Area of Expertise Shapeling Arts at Casual level; if you already have Shapeling Arts at Casual, advance it to Veteran. If you already have Shapeling Arts at Veteran, then while using these bracers, you may reduce any boxes of Nightmares you mark while using the Shapeling Arts by one.", "While openly wearing this bracer, mark 1 box of Nightmares to take favourable circumstances while positively interacting with Rubbery Men."]}, {"n": "Beetle-Wing Tea Dress", "c": "Garb & Attire", "k": "eq", "t": "Extravagantly embroidered in labradorescent glim-bug elytra. Just how many moulting Moon-misers did it take to make this?", "p": ["attract others’ attentions, for better or worse", "wager your reputation against social mores"], "s": ["You are becoming increasingly attached to this dress. The first time you gain it, gain an obsession, ‘Moon- Milk’ at strength 1, adjust your obsessions as necessary. Each time you don the dress after that, gain a charge of obsession, ‘Moon-Milk’. If you can’t gain a charge (because it is already charged or you have removed the obsession), instead gain 1 strength of obsession, ‘Moon- Milk’, adjusting your obsessions as needed.", "Treat yourself as having the prominence, ‘Bizarre’, while wearing this dress."]}, {"n": "Cured Jillyfleur Cloak", "c": "Garb & Attire", "k": "eq", "t": "The carcass has been thoroughly flensed; great flaps of purple membrane are stiffening in the zee-breeze. It would make a highly distinctive coat.", "p": ["exude an off-putting mien", "display a formidable reputation", "endear yourself to zailors"], "s": ["While wearing this cloak openly, treat all attempts at a positive, pleasant interaction with anyone except zailors as facing formidable difficulty.", "While wearing this cloak openly, treat all attempts at a negative, off-putting, or intimidating interaction with anyone except zailors as having favourable circumstances.", "While wearing this cloak openly, treat yourself as having the prominence, ‘Dreaded’.", "While wearing this cloak openly, take favourable circumstances while socially interacting with zailors of any kind in any way."]}, {"n": "Exceptional Hat", "c": "Garb & Attire", "k": "eq", "t": "The Exceptional Hat has never been observed to consume brains of its wearers. These stories are, without exception, lies!", "p": ["observe unwitting targets via a second pair of eyes", "establish yourself as a being of delicious taste"], "s": ["When you place this hat upon your head, mark 1 box of Nightmares and 1 box of Wounds to allow the hat to show you what it has seen of late.", "While wearing this hat, mark 1 box of Nightmares and 1 box of Wounds to take favourable circumstances on any Watchful challenge roll."]}, {"n": "Moderately Cooperative Clothes Colony", "c": "Garb & Attire", "k": "eq", "t": "‘We shall complete you! You shall delight in wearing us!’ But who is wearing whom?", "p": ["give yourself benefits with Watchful and Persuasive, but a harder time trying to be Shadowy", "fascinate Bohemians", "declare yourself an aesthete of Polythremic culture"], "s": ["While wearing this colony, all Shadowy rolls you make are always faced by formidable difficulty.", "While wearing this colony, your Persuasive and Watchful rolls are never faced by formidable difficulty.", "While wearing this colony, you are also treated as having the prominence, ‘Bizarre’."]}, {"n": "Parabola-Linen Suit", "c": "Garb & Attire", "k": "eq", "t": "Flax grows beside the river where nightmares spawn. This suit’s tailor claims to have used it in his work. An amber light throbs within, as if you could wipe its surface clear and see another place.", "p": ["pique the interest of those who visited the Parabola", "make others more willing to excuse your eccentric behaviour"], "s": ["While wearing the suit, treat yourself as having Occlusion at one rank lower than normal. If you already have no Occlusion skill rank, then any Occlusion challenge rolls you make face formidable difficulty.", "Whenever you would mark Scandal, mark one fewer.", "While wearing this suit, treat yourself as having the prominence, ‘Respectable’."]}, {"n": "Singed and Stained Work Gloves", "c": "Garb & Attire", "k": "eq", "t": "A memento of when London almost fell for a second time. These hardy gloves have seen their share of picking through rubble and handling dangerous materials.", "p": ["improve your handling of certain poisons or other noxious items", "signal a strong will and impressive experience"], "s": ["While wearing these gloves, treat yourself as having the Area of Expertise in Kataleptic Toxicology at one level higher than normal.", "While wearing these gloves, mark three fewer boxes of Wounds or Nightmares (to a minimum of 0) when handling noxious or toxic substances."]}, {"n": "Sporing Bonnet", "c": "Garb & Attire", "k": "eq", "t": "Are those really mushrooms? If they are, why do they whisper so? How is it they have taken root in your hair and in your dreams?", "p": ["impress a blemmigan (and, perhaps, a Bohemian or two)"], "s": ["Mark 1 box of Nightmares to add an automatic hit to your roll with Persuasive to interact with Mycologenes, blemmigans, and others affected by fungal phenomena.", "Once per venture, raise Nightmares by 1 level to connect to local mycelial networks; they will reveal themselves to you and share a useful secret, pointing you in the right direction to fulfil your interests."]}, {"n": "Velvet Cloak with Burning Buttons", "c": "Garb & Attire", "k": "eq", "t": "Soft and thick; so heavy that wearing it makes walking arduous, yet it is deliciously warm. It closes at the throat with three clasps, bright as glowing coals.", "p": ["signal an allegiance to the artisans of the Red Science", "cloak yourself perfectly", "armor yourself against the deepest cold in the Neath"], "s": ["Once per venture, you may mark 1 box of Suspicion to avoid detection when fleeing a scene – but someone will remember the cloak and nothing else about you.", "While wearing this cloak openly, treat all attempts at a positive, pleasant interaction with the practitioners of the Red Science as having favourable circumstances."]}, {"n": "Vitiating Mantle", "c": "Garb & Attire", "k": "eq", "t": "Beneath stinger and frond and ambered slime, the clothes shall unmake the flesh.", "p": ["enhance your understanding of Osteology and the Shapeling Arts", "sense the world around you through a stimulating garment", "unnerve more respectable folk"], "s": ["While wearing this mantle, treat yourself as having the prominence, ‘Bizarre’.", "While wearing this mantle, treat yourself as having Shapeling Arts at one level higher than normal, to a maximum of Veteran."]}, {"n": "Agar Plate of Uttershroom Spores", "c": "Poisoner’s Handbook", "k": "res", "t": "The Mother of Mushrooms sings. These spores make it easier for the uninitiated to hear her song.", "p": ["confuse and confound your enemies", "metamorphose others’ minds and bodies according to the will of the Uttershroom", "limit a target’s conversational capacity to rhymes (though this usually requires long-term exposure)"], "s": [], "u": 1}, {"n": "Cellarful of Mutersalt", "c": "Poisoner’s Handbook", "k": "res", "t": "Tastes like clean air and crystallised ginger. Also has the interesting property of paralysing the vocal cords if you sprinkle it in your stew.", "p": ["silence a target (perhaps permanently)", "neutralise offending (or revealing) odours", "ensure that dead men tell no tales", "delay any attempts at conversation until after dinner"], "s": [], "u": 3}, {"n": "Cruet of Moon-Milk", "c": "Poisoner’s Handbook", "k": "res", "t": "The Masters thought it could be refined into love. Instead, it induces excruciating obsessions.", "p": ["cause whoever drinks it to become utterly obsessed with the first thing they see"], "s": [], "u": 1}, {"n": "Dab of Discriminating Aconite", "c": "Poisoner’s Handbook", "k": "res", "t": "It seems mostly inert, at first. And then it hits you like a punch to the gut. It knows what you did. Even the bottle says so.", "p": ["inspire paranoia in your target", "scar an opponent’s very soul", "unburden yourself (or others) of spiritual menaces"], "s": [], "u": 2}, {"n": "Distillation of Retribution", "c": "Poisoner’s Handbook", "k": "res", "t": "A heady mixture. Thrilling, intoxicating, and guiltless.", "p": ["manipulate a target’s sense of justice", "give the gift of (false) closure", "create Discriminating Aconite from its refinement"], "s": [], "u": 3}, {"n": "Flask of Abominable Salts", "c": "Poisoner’s Handbook", "k": "res", "t": "‘WARNING: consumption may cause vomiting, paralysis, and ennui.’", "p": ["gain the attention of the zee-god Salt", "prevent the decay of organic materials", "sicken a target with nausea and melancholy", "erase an opponent’s experience or achievements (at high doses)", "set an uncontrollable flame"], "s": [], "u": 3}, {"n": "Sachet of Dried Ghost Cap (Amanita chthonica)", "c": "Poisoner’s Handbook", "k": "res", "t": "Your eyes rotate longitudinally in their sockets, twisting your optical nerves into taut strings. Your vision pitches, then darkens. And yet – you are not alone.", "p": ["torment an enemy with voice from the Far Shore", "temporarily blind an opponent to all light spectrums", "Act as a translator to speak with a tomb-colonist too decrepit to speak or otherwise unintelligible"], "s": [], "u": 1}, {"n": "Spoonful of Cardinal’s Honey", "c": "Poisoner’s Handbook", "k": "res", "t": "Also known as “black” or “midnight” honey, Cardinal’s Honey is a rare and forbidden substance which physically transports the imbiber into the dreams of the dead.", "p": ["banish a poisoned enemy to the dreams of the dead, from which it is possible they may never return", "visit and interrogate the spirit of a deceased soul who has been harvested by Lamplighter Bees", "in a drastically diluted form, experience the moment of death from whom Cardinal’s Honey was harvested"], "s": [], "u": 1}, {"n": "Tears of the Bazaar", "c": "Poisoner’s Handbook", "k": "res", "t": "A tiny ampoule of utter sorrow. Even touching its cork provokes weeping. Consume it, and be fatally consumed by melancholy.", "p": ["gain a glimpse of the Bazaar’s own memories, when inhaled, and take on its grief", "overwhelm a target with cosmic sorrow, when inhaled, destroying their soul", "dispose of a body by breaking it down"], "s": [], "u": 1}, {"n": "Tincture of Parabolan Orange-Apple", "c": "Poisoner’s Handbook", "k": "res", "t": "Even in its natural form, the juice stings. It’s not difficult to imagine what damage it might do at this concentration.", "p": ["poison an opponent’s dream-self", "induce a bout of paralysing self-reflection", "corrode soft-ish materials, such as flesh", "ease a target’s Nightmares and Wounds, at certain dilutions, about two boxes per single use or one level per two uses"], "s": [], "u": 3}, {"n": "Toxinbane Brooch", "c": "Poisoner’s Handbook", "k": "res", "t": "In case of attempted poisoning, cock the pin into the mechanism and hope.", "p": ["counter the effects of a poison"], "s": ["Inject the liquid contained in the brooch to cure any poison, once. As an intermission action, you can obtain a refill for this brooch."], "u": 1}, {"n": "Vial of Cantigaster Venom", "c": "Poisoner’s Handbook", "k": "res", "t": "Perhaps it’s not genuine. Perhaps if it is, it’s not everything it’s claimed to be. But it certainly bloody hurts.", "p": ["ensure a permanent (and agonising) form of death", "inflict irrevocable nerve damage", "de-face a body (or at least, render it less recognisable)"], "s": [], "u": 5}, {"n": "Vial of Presbyter’s Nightshade (Atropa illuminata)", "c": "Poisoner’s Handbook", "k": "res", "t": "A terrible burning traipses around your body like a tourist. It makes sightseeing stops in your lungs, kidneys, and liver.", "p": ["relieve episodes of spasmodic pain", "instil a residuum of the mountain’s light into your eyes, allowing you to see well in the dark", "Enliven a target’s flesh, healing their Wounds two boxes or one level per use, at a potentially devastating cost: roll a d6 and compare it to the number of times the target has used Presbyter’s Nightshade. If you roll equal to or under that number, the target’s flesh comes alive. We’re sorry."], "s": [], "u": 3}, {"n": "Vial of Queenly Attar", "c": "Poisoner’s Handbook", "k": "res", "t": "The scarlet emanation of dreams; the currency of Arbor; the impossible hue that only grows deeper.", "p": ["hinder a target’s sight", "afflict an opponent with a spiritual addiction", "increase one’s ability to fuel, and even construct, dreams", "commune with a scarlet Parabolan power (the Red- Handed Queen)"], "s": [], "u": 1}, {"n": "F.F. Gebrandt’s Flame-Resilient Paper", "c": "Supplies", "k": "res", "t": "Guaranteed protection from incineration. Proven to withstand up to three Correspondence sigils.", "p": ["improve your work with the Correspondence", "protect yourself from the worst of the sigils’ effects", "render the content of a wrapped package fireproof"], "s": [], "u": 1}, {"n": "Foxfire Candle Stub", "c": "Supplies", "k": "res", "t": "Named for its eery greenish glow. It’s not made out of foxes.", "p": ["find your way, even in the darkest of darks", "daze and repel lamplighter bees", "lure a Snuffer to your location, or one you’ve designated", "make a donation to the Church to improve your standing"], "s": [], "u": 1}, {"n": "Phosphorescent Scarab", "c": "Supplies", "k": "res", "t": "A cheap but lamentably mobile substitute for candles. Evidence of Londoners’ inordinate fondness for beetles.", "p": ["temporarily gain a companion that doubles as a light source", "identify clues and significant pieces of puzzles"], "s": [], "u": 5}, {"n": "Phrenological Putty", "c": "Supplies", "k": "res", "t": "It won’t tell you anything about a person’s character, but it will accurately recreate a likeness. More or less.", "p": ["mould a face from memory, with diminishing returns", "create a basis for a new mask or disguise"], "s": [], "u": 3}, {"n": "Pot of Violant Ink", "c": "Supplies", "k": "res", "t": "Violant is the colour of necessary, but troublesome, connections. The ink tastes like pitch mixed with tears.", "p": ["preserve anything written forever", "make a message the reader will remember perfectly, forever", "counter the memory-draining effects of irrigo"], "s": [], "u": 5}, {"n": "Cluster of Solacefruit", "c": "Ingestibles", "k": "res", "t": "In smaller quantities, delightful and refreshing. In larger quantities, one of the very nicest ways to die.", "p": ["Lower your Nightmares and Wounds, one use clearing 1 box of each. (If you have no marked boxes, lower that menace level by 1, and then mark all boxes of that menace but one.) Then roll 1d6 against the number of times you have used the solacefruit since the last intermission; if you roll equal to or lower than that number, you fall into a deep, pleasant sleep, and die.", "pass away peacefully, if not for long"], "s": [], "u": 2}, {"n": "Cup of Darkdrop Coffee", "c": "Ingestibles", "k": "res", "t": "Musky! Explosive! Almost certainly not actually brewed from bat guano! That’s just Mr Wines’ little joke.", "p": ["restore your endurance at a cost: mark 1 box of Wounds to invigorate yourself", "fill yourself with focus and fiery clarity"], "s": [], "u": 1}, {"n": "Drop of Prisoner’s Honey", "c": "Ingestibles", "k": "res", "t": "The most delightful secret of the Neath: the honey of lamplighter bees fed exclusively on the Exile’s Rose.", "p": ["lower your Nightmares, one use clearing 1 box (if you have no marked boxes, lower your Nightmares level by 1, and then mark all boxes of Nightmares but one); if you reduce your Nightmares level by 1 in this way, you must gain at 1 strength or raise by 1 strength an obsession, “acquire and taste prisoner’s honey”", "enter a random Parabola location for an uncertain amount of time"], "s": [], "u": 1}, {"n": "F.F. Gebrandt’s Superior Laudanum", "c": "Ingestibles", "k": "res", "t": "Ensures a deep sleep, but may affect your health. Use when your Nightmares rise too high.", "p": ["lower your Nightmares at the cost of Wounds: each use removes 1 level of Nightmares but forces you to mark 4 boxes of Wounds", "dampen your connection to Parabola", "develop a costly addiction"], "s": [], "u": 2}, {"n": "F.F. Gebrandt’s Tincture of Vigour", "c": "Ingestibles", "k": "res", "t": "According to the label, it cures pain, sets bones, curls hair, and wards off spiders.", "p": ["lower your Wounds, one use clearing 1 box (if you have no marked boxes, lower your Wounds level by 1, and then mark all boxes but one)", "raise your Nightmares, if used in an unintended way, one use marking 1 box"], "s": [], "u": 4}, {"n": "Powder of Renewal", "c": "Ingestibles", "k": "res", "t": "This induces both yearning and the certain belief that the thing desired for can and will be achieved. Most potent on those with crushed ambitions and dismissed hopes.", "p": ["give hope to those who’ve lost it", "inspire persistence when all is lost"], "s": [], "u": 1}, {"n": "Thimbleful of Hesperidean Cider", "c": "Ingestibles", "k": "res", "t": "“Whoso thirsteth and drinketh of this, so shall he never die.”", "p": ["Gain another chance at life: When you would permanently perish, you reanimate once more – and only once more, unless you manage to get your hands on a second sip.", "See visions of the Garden; perhaps a clue to its location lies therein? Gain at strength 1 or increase by 1 the obsession, ‘Taste of the Garden’, adjusting your other obsessions as needed", "Threaten the Boatman on the Silent River"], "s": [], "u": 1}, {"n": "Tin of Murgatroyd’s Patented Jellied Mushroom Cakes", "c": "Ingestibles", "k": "res", "t": "More of a biscuit, really. And more mould than mushroom. Still, after eating one, you are more attuned to the world around you and its opportunities. Especially those opportunities that in no way involve jellied mushroom.", "p": ["sate your hunger for some time", "provide new insights on existing opportunities"], "s": [], "u": 3}, {"n": "Tin of Zzoup", "c": "Ingestibles", "k": "res", "t": "The colour: old blood on snow. The taste: paprika, mushrooms, irony. The recipe: closely guarded.", "p": ["lower your Nightmares, one use clearing 1 box (if you have no marked boxes, lower your Nightmares level by 1, and then mark all boxes but one)", "insulate yourself from the cold", "endear yourself to ship-rats"], "s": [], "u": 1}, {"n": "Traces of Red Honey", "c": "Ingestibles", "k": "res", "t": "A jar with a broken seal. Remnants of some dark substance still stain the sides. Red honey? This is more than contraband; even knowing about it can get you in trouble.", "p": ["dig through the memories of the poor soul harvested for the honey", "experience something you’d otherwise never be able to", "create Cardinal’s Honey, an even more powerful and lethal variant"], "s": [], "u": 1}, {"n": "An Extraordinary Mind", "c": "Intangibles (Resources)", "k": "res", "t": "Your knowledge is as broad as the Unterzee; your insights, the stuff of legend. Nothing escapes your gaze.", "p": ["entice would-be employers or supporters with your mind’s potential"], "s": ["When rolling your Cogency during a skill challenge, mark one use of this resource to use Watchful instead of Persuasive to determine your dice pool."], "u": 5}, {"n": "An Invisible Eminence", "c": "Intangibles (Resources)", "k": "res", "t": "You are one of London’s best-kept secrets, and that’s how you like it.", "p": ["wield an air of mystery to fearsome or enticing effect", "avoid any notice"], "s": ["Once per venture, when leaving the scene of a crime or other compromising situation in which you played only a supporting role, mark one use of your An Invisible Eminence to tell your GM you were never there. You will never be directly linked to that scene, its events, or its consequences.", "Mark one use of your An Invisible Eminence to avoid damaging a connection or losing a mundanity."], "u": 5}, {"n": "A Legendary Charisma", "c": "Intangibles (Resources)", "k": "res", "t": "When you enter a room, everyone turns. When you are speaking, the room falls silent. Your rivals have been known to interrupt you, but they rarely do so twice.", "p": ["buy time to neglect mundanities without consequence", "guarantee an audience hangs on your every word"], "s": ["Once per venture, mark one use of your A Legendary Charisma when you meet someone new to tell your GM where and under what circumstances you’ve met them before. Your GM will then truthfully answer one of the following questions (your choice):", "What is this NPC’s profession?", "Does this NPC have a family or a lover?", "What is one of their obsessions or ambitions?"], "u": 5}, {"n": "Memory of a Name", "c": "Intangibles (Resources)", "k": "res", "t": "You know this person – you’re certain of it. Their identity is right at the tip of your hippocampus.", "p": ["gain whenever you spend time with your association during an intermission", "Learn the name, along with a few key details, of someone related to one of your associations: When you call upon this memory, the GM will divulge one useful fact about that figure (known habits, affiliations, weaknesses, or recent whereabouts)."], "s": [], "u": 1}, {"n": "A Shattering Force", "c": "Intangibles (Resources)", "k": "res", "t": "To those who’ve heard of you, your steps signal destruction.", "p": ["invoke your fearsome reputation", "clear a path to your target"], "s": ["Once per venture, when you would inflict Nightmares upon anyone or anything, mark one use of this resource to double the Nightmares you inflict."], "u": 5}, {"n": "Tale of Terror!!", "c": "Intangibles (Resources)", "k": "res", "t": "The blood freezes! The nape-hairs rise! The audience is spellbound!", "p": ["anyone who hears your Tale of Terror!! marks 1 box of Nightmares", "support an attempt to scare a person into action"], "s": [], "u": 1}, {"n": "Moonlight-Packed Fireworks", "c": "Explosives & Destructive Agents", "k": "res", "t": "For open-air use only. Storage of such explosives in the foundations of any building could have disastrous and entirely unintended consequences. Do not look at the detonations for too long.", "p": ["show someone visions of a London that never Fell", "bedazzle the unsuspecting", "tame dogs and marsh-wolves"], "s": [], "u": 5}, {"n": "Sachet of Perfumed Gunpowder", "c": "Explosives & Destructive Agents", "k": "res", "t": "Smells like roses, leaves pink scorch marks. Knowing how to make it is worth more than the thing in itself.", "p": ["spice up celebrations with pyrotechnics", "cause a loud, floral-scented distraction", "boost any use of Area of Expertise in Floriography"], "s": [], "u": 1}, {"n": "The Serpent’s Loom", "c": "Explosives & Destructive Agents", "k": "res", "t": "An intricate knot of fine, metallic threads, woven on a loom that is never quite there. It smells of frost-touched roses and tea leaves steeped in futures yet to unfold. Its threads quiver in anticipation of possibilities. One of the Seven-Serpent’s teeth is the shuttle.", "p": ["create a Parabolan dead zone", "permanently expel those caught in the blast from Parabola", "diminish powers of Parabola, such as the Cats and the Fingerkings"], "s": [], "u": 1}, {"n": "Stick of Dynamite", "c": "Explosives & Destructive Agents", "k": "res", "t": "If the press is to be believed, every anarchist carries a baker’s dozen of bombs at all times. The truth is that explosives are rare and hard to use.", "p": ["cause a staggering amount of property damage", "force entry into various buildings", "donate a crateful to improve your association with Revolutionaries"], "s": [], "u": 1}, {"n": "Unlawful Device", "c": "Explosives & Destructive Agents", "k": "res", "t": "Unexploded ordnance of Hell’s war against London. Its infernal fuse burns, yet never seems to shorten. It smells of brimstone and brass.", "p": ["create a time loop, wherein those imprisoned relive their final hours without cease", "reveal a past moment of significance, plucked from the slipstream of time", "unnerve devils, Crimson Engineers, and the Calendar Council"], "s": [], "u": 1}, {"n": "Bundle of Silk Bandages", "c": "Flimsy Tools", "k": "res", "t": "No matter the weather, they remain cool to the touch. Excellent for treating burns.", "p": ["lower Wounds by 1 level (2, if you’ve been burned recently)"], "s": [], "u": 2}, {"n": "Department-Issued Splint", "c": "Flimsy Tools", "k": "res", "t": "Issued (begrudgingly) by the Department of Menace Eradication. Technically a medical device. Comes with two sticks and a pamphlet of disclaimers.", "p": ["stabilize a broken limb, nullifying movement constraints", "lower Wounds by 1 level (2, if you’ve recently broken a bone or been crushed)", "while healing and wearing the splint, gain the prominence, ‘Bizarre’"], "s": [], "u": 1}, {"n": "Disintegrating Lockpick", "c": "Flimsy Tools", "k": "res", "t": "It’s expensive but less so than arranging bail.", "p": ["deny the Constables proof of your misdeeds", "avoid accruing Suspicion"], "s": [], "u": 1}, {"n": "Mourning Candle", "c": "Flimsy Tools", "k": "res", "t": "They give out a smudgy, dolorous light. From the tomb-colonies; probably best not to ask how they’re made.", "p": ["ease your (or another’s) grief", "cast a dim light, imperceptible to others"], "s": [], "u": 1}];
+const gearCats = () => GEAR.map(g=>g.c).filter((v,i,a)=>a.indexOf(v)===i);
+let GEAR_SOURCE = "the book";
+const GEAR_SLOTS = [
+  {key:"originEq",  kind:"eq",  label:"Origin equipment",        note:"One piece, from where you are from."},
+  {key:"profEq",    kind:"eq",  label:"Profession equipment",    note:"One piece, from what you do."},
+  {key:"extraEq",   kind:"eq",  label:"Extra equipment",         note:"One more, tied to any identity you like."},
+  {key:"profRes",   kind:"res", label:"Profession resource",     note:"Two uses by default."},
+  {key:"assocRes",  kind:"res", label:"Association resource",    note:"Two uses by default."},
+  {key:"extraRes",  kind:"res", label:"Extra resource",          note:"Two uses, tied to any identity you like."}
+];
+const gearItem = name => GEAR.find(g=>g.n===name) || null;
+const CAT_FIELDS = /^(Category|Kind|Uses|Tagline|Purpose|Traits|Gain|Lose)\s*:\s*(.*)$/i;
+function parseCatalogue(text){
+  const items=[]; let cur=null, lst=null;
+  text.split(/\r?\n/).forEach(raw=>{
+    const s=raw.trim();
+    if(s.startsWith("## ")){ if(cur) items.push(cur); cur={n:s.slice(3).trim(),c:"",k:"eq",t:"",p:[],s:[]}; lst=null; return; }
+    if(!cur||!s.startsWith("-")) return;
+    const body=s.replace(/^-+\s*/,"");
+    const m=body.match(CAT_FIELDS);
+    if(m){
+      const f=m[1].toLowerCase(), v=m[2].trim();
+      if(f==="category"){ cur.c=v; lst=null; }
+      else if(f==="kind"){ cur.k=/^res/i.test(v)?"res":"eq"; lst=null; }
+      else if(f==="uses"){ const n=v.match(/\d+/); if(n) cur.u=Number(n[0]); lst=null; }
+      else if(f==="tagline"){ cur.t=v; lst=null; }
+      else if(f==="purpose"){ lst="p"; if(v) cur.p.push(v); }
+      else if(f==="traits"){ lst="s"; if(v) cur.s.push(v); }
+      else if(f==="gain"){ cur.g=v; lst=null; }
+      else if(f==="lose"){ cur.l=v; lst=null; }
+      return;
+    }
+    if(lst&&body) cur[lst].push(body);
+  });
+  if(cur) items.push(cur);
+  return items.filter(x=>x.n&&x.c);
+}
+function loadCatalogue(text,label){
+  let items;
+  try{
+    items = text.trim().startsWith("[") || text.trim().startsWith("{")
+      ? (JSON.parse(text).items || JSON.parse(text))
+      : parseCatalogue(text);
+  }catch(err){ toast("That catalogue could not be read"); return; }
+  if(!Array.isArray(items)||!items.length){ toast("No items found in that file"); return; }
+  GEAR=items.map(x=>({n:x.n,c:x.c,k:x.k==="res"?"res":"eq",t:x.t||"",p:x.p||[],s:x.s||[],u:x.u,g:x.g,l:x.l}));
+  GEAR_SOURCE=label||"your file";
+  S.gearCat=""; S.gearQuery="";
+  rerender();
+  toast(GEAR.length+" items loaded");
+}
+
+
+const TWISTS = [
+  { name:"Amnesiac", flavour:"You misplaced your entire past. No doubt it is in the last place you look.",
+    mech:["Mark 3 Nightmares to dredge up something relevant; roll your Nightmares level as a challenge","On a success, question the GM as though your past were an Area of Expertise"] },
+  { name:"Another String in Your Bow", flavour:"Two careers, and no time for anything else.",
+    mech:["Take a second profession in full, including its skills, equipment and resource","The only route to a Master-rank skill at creation"], secondProfession:true },
+  { name:"Marked by the Correspondence", flavour:"A sigil on your skin, forever, and one connected ability.",
+    mech:["Choose one: An exchange of burdens · The taste of knowing lips · A circle of words · Cachinnate · An elaborate but fragile artifice · Impalpable but drawn"],
+    choice:{key:"corr_sigil",label:"Connected ability",options:["An exchange of burdens — touch swaps memory and knowledge","“The taste of knowing lips” — romance trades your buried truths","“A circle of words…” — draws all attention; readers are struck blind","“Cachinnate” — your laughter shatters things and compels listeners","“An elaborate but fragile artifice” — flawless impersonation until someone truly looks","“Impalpable but drawn” — pass through solids; risk falling through floors"]} },
+  { name:"Scholar of the Correspondence", flavour:"You read, decipher and inscribe it, and keep sand nearby.",
+    mech:["Correspondence special skill at Trained","Two studied sigils you can attempt to reproduce","Lower one menace threshold by 1 for what the study cost you"],
+    grants:[{skill:"Correspondence",level:1}],
+    bumps:[{key:"corr_menace",kind:"menaceDown",label:"Lower the level at which one menace overcomes you by 1"}] },
+  { name:"Glasswork", flavour:"Not a mirror-maker: a traveller behind the glass.",
+    mech:["Pass into and through Parabola, and investigate its reflections of the world","Mark 2 Nightmares for favourable circumstances there — 1 with cosmogone spectacles"],
+    requiresProfession:"Silverer" },
+  { name:"Haunted", flavour:"Your memory is perfect, and insistent, and unruly.",
+    mech:["Rising Nightmares can strand you inside a memory until wounded or until time passes"],
+    bumps:[{key:"haunt_s1",kind:"skillRank",cap:3,label:"Advance one skill by a rank (up to Master)"},
+           {key:"haunt_s2",kind:"skillRank",cap:2,label:"Advance a second skill by a rank (up to Adept)"}],
+    aoeBonus:1, aoeNote:"and one further level of Area of Expertise" },
+  { name:"Hoarder", flavour:"Keep and collect, collect and keep.",
+    mech:["Mark 1 Nightmare whenever you lose equipment or use up a resource","Deepest Pockets — mark 2 Nightmares to produce a new 2-use resource from your person"] },
+  { name:"Hunted", flavour:"Something terrible, unstoppable and undefeatable seeks you.",
+    mech:["While your hunter draws nigh: +1 die on every challenge roll, and mark a menace each roll","Call the hunter closer to reroll a defeat, once until time passes"] },
+  { name:"Inappropriate Pet", flavour:"You should not have fed it. Have you seen its eyes? Are those eyes?",
+    mech:["Aids you when asked, but complicates on more 1s than 6s","Acts independently if bribed; on a 1 it wanders off for the venture"] },
+  { name:"Negligent Caregiver", flavour:"You swear you will do better. You long to do better.",
+    mech:["An extra connection with someone you ought to be caring for","Clear 1 Nightmare whenever you give care against your better instincts"],
+    obsessions:[{name:"Redemption",detail:"prove yourself a worthy caregiver",strength:3}] },
+  { name:"Peligin Rites", flavour:"Zee-dark eyes, and a harpoon carved from what you killed.",
+    mech:["Notched Bone Harpoon — 2 automatic hits, paid for in Scandal, Suspicion, Wounds or Nightmares","A monster-hunting obsession you may never lose or resolve"],
+    requiresProfession:"Monster-Hunter",
+    obsessions:[{name:"Consumption",detail:"[What do you always strive to consume?]",strength:3},
+                {name:"Monster-Hunter",detail:"[Your relationship to your hunting]",strength:3}] },
+  { name:"Prodigious", flavour:"Anyone who sees you comments on your size. You tower.",
+    mech:["+1 die on rolls of strength, reach or size","Automatic formidable difficulty when hiding or fitting into small spaces"] },
+  { name:"Red Scientist", flavour:"The Treacheries — of Clocks, of Breath, of Maps — turned to the impossible.",
+    mech:["Red Science special skill at Trained","Prior Successes — a device exploiting one Treachery that never works quite as hoped","Two menace thresholds lowered by 1 as scarring"],
+    grants:[{skill:"Red Science",level:1}],
+    obsessions:[{name:"Ambition",detail:"[The higher goal you pursue with the Red Science]",strength:3}],
+    bumps:[{key:"rs_menace1",kind:"menaceDown",label:"First menace scarred: lower its threshold by 1"},
+           {key:"rs_menace2",kind:"menaceDown",label:"Second menace scarred: lower its threshold by 1"}] },
+  { name:"Shapeling Arts", flavour:"An uncommon affinity. Do not flaunt it too widely.",
+    mech:["Reshape meat and bone, spending deep amber as a resource","Small changes are free; impressive or careful ones need a roll; vast ones need time"],
+    requiresProfession:"Shaper" },
+  { name:"Shaped", flavour:"Deep amber has already remade some part of you.",
+    mech:["Treat the alteration as a piece of equipment and detail what it does","Mark 1 Scandal when it is first seen in public, 1 Suspicion when it is first used"] },
+  { name:"Soulless", flavour:"A devil has your soul. You would like it back — but not the boon back.",
+    mech:["Obsession maximum falls to 8 total, and you are overcome at strength 6 instead of 8"],
+    obsCap:8, obsOvercome:6,
+    bumps:[{key:"soul_gain",kind:"choice",label:"Take one of the boon's advances",
+      options:["Advance an attribute at 2 up to 3","Set any skill to Adept","Advance a skill already at Adept to Master"]}] },
+  { name:"Timeless", flavour:"Lightly immortal. Time does not get a hold of you.",
+    mech:["You do not age, and the reasons are unclear even to you"],
+    bumps:[{key:"time_s1",kind:"skillRank",cap:3,label:"Increase one skill by a rank (up to Master)"},
+           {key:"time_s2",kind:"skillRank",cap:2,label:"Increase a second skill by a rank (up to Adept)"}] },
+  { name:"Veteran", flavour:"You and war have each left your mark on the other.",
+    mech:["Serious fights with five or more combatants raise your Nightmares level by 1","Death Dealer — mark 1 Nightmare to add double your Nightmares level in Wounds dealt"],
+    freeAoE:{name:"Battle",level:2} }
+];
+
+const BONDS = ["Allies","Broken Love","Delicious Friends","Enablers","Old Wounds","Opposition","Partnership","Rivalry"];
+const MUNDANITIES = ["Job","Domicile","Obligation","Confidante","Mentor","Pastime"];
+
+/* ============================ STATE ============================ */
+const S = {
+  name:"", look:"", nature:null, origin:null, profession:null, profChoice:null,
+  profession2:null, profChoice2:null,
+  disposition:null, dispOptIn:false, association:null, twist:null,
+  ambition:"", goal:"", mundanity:"", connection:"",
+  attrs:{Dangerous:0,Persuasive:0,Shadowy:0,Watchful:0},
+  bumps:{}, aoe:[], extraObs:[], bonds:[], menaceLevel:{}, charges:{}, slot:"originEq", gearQuery:"", gearCat:"",
+  gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},
+  step:0
+};
+
+const STEPS = [
+  {n:"I",   key:"nature",      title:"Nature",        sub:"What you are"},
+  {n:"II",  key:"origin",      title:"Origin",        sub:"Where you are from"},
+  {n:"III", key:"profession",  title:"Profession",    sub:"What you do"},
+  {n:"IV",  key:"disposition", title:"Disposition",   sub:"What you are like"},
+  {n:"V",   key:"association", title:"Association",   sub:"Whom you run with"},
+  {n:"VI",  key:"twist",       title:"Twist",         sub:"How you are distinctive"},
+  {n:"VII", key:"attributes",  title:"Attributes",    sub:"2 / 1 / 1 / 0"},
+  {n:"VIII",key:"obsessions",  title:"Obsessions",    sub:"Grand ambition and the rest"},
+  {n:"IX",  key:"expertise",   title:"Expertise",     sub:"Areas of Expertise"},
+  {n:"X",   key:"kit",         title:"Kit",           sub:"Equipment and resources"},
+  {n:"XI",  key:"details",     title:"Details",       sub:"Name, mundanity, goal"}
+];
+
+/* ============================ ENGINE ============================ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const find = (list,name) => list.find(x=>x.name===name) || null;
+const nat=()=>find(NATURES,S.nature), ori=()=>find(ORIGINS,S.origin), pro=()=>find(PROFESSIONS,S.profession),
+      pro2=()=>find(PROFESSIONS,S.profession2), dis=()=>find(DISPOSITIONS,S.disposition),
+      aso=()=>find(ASSOCIATIONS,S.association), twi=()=>find(TWISTS,S.twist);
+
+function addSkill(m,name,lvl,src){
+  if(!name) return;
+  if(!m[name]) m[name]={lvl:lvl,src:[src]};
+  else{ const c=m[name].lvl; m[name].lvl = (c===1&&lvl===1)?2:Math.max(c,lvl); m[name].src.push(src); }
+}
+function bumpSkill(m,name,cap,src){
+  if(!name) return;
+  const c = m[name]?m[name].lvl:0;
+  const nl = Math.min(c+1,cap,3);
+  if(nl>c){ if(m[name]){ m[name].lvl=nl; m[name].src.push(src); } else m[name]={lvl:nl,src:[src]}; }
+}
+function activeBumps(){
+  const out=[];
+  const n=nat(), t=twi();
+  if(n&&n.bumps) n.bumps.forEach(b=>out.push({...b,from:n.name}));
+  if(t&&t.bumps) t.bumps.forEach(b=>out.push({...b,from:t.name}));
+  return out;
+}
+
+function compute(){
+  const n=nat(), o=ori(), p=pro(), p2=pro2(), d=dis(), a=aso(), t=twi();
+  const skills={};
+  if(p){ addSkill(skills,p.adept,2,p.name); if(p.trained) addSkill(skills,p.trained,1,p.name); }
+  if(t&&t.secondProfession&&p2){ addSkill(skills,p2.adept,2,p2.name); if(p2.trained) addSkill(skills,p2.trained,1,p2.name); }
+  if(n&&n.grants) n.grants.forEach(g=>addSkill(skills,g.skill,g.level,n.name));
+  if(t&&t.grants) t.grants.forEach(g=>addSkill(skills,g.skill,g.level,t.name));
+  if(p&&S.profChoice) bumpSkill(skills,S.profChoice,2,p.name+" choice");
+  if(t&&t.secondProfession&&p2&&S.profChoice2) bumpSkill(skills,S.profChoice2,3,p2.name+" choice");
+  activeBumps().forEach(b=>{
+    const v=S.bumps[b.key];
+    if((b.kind==="skillRank"||b.kind==="skillBump")&&v) bumpSkill(skills,v,b.cap,b.from);
+    if(b.kind==="choice"&&v!=null){
+      const tgt=S.bumps[b.key+"_t"];
+      if(v==="1"&&tgt) addSkill(skills,tgt,2,b.from);
+      if(v==="2"&&tgt) bumpSkill(skills,tgt,3,b.from);
+    }
+  });
+
+  const attrs={}; ATTRS.forEach(k=>attrs[k]=1);
+  if(S.attr2) attrs[S.attr2]=2;
+  if(S.attr0) attrs[S.attr0]=0;
+  activeBumps().forEach(b=>{
+    const v=S.bumps[b.key];
+    if(b.kind==="attrBump"&&v&&attrs[v]!=null) attrs[v]=Math.min(attrs[v]+1,b.cap);
+    if(b.kind==="choice"&&v==="0"){ const tgt=S.bumps[b.key+"_t"]; if(tgt&&attrs[tgt]===2) attrs[tgt]=3; }
+  });
+
+  const menaces={};
+  MENACES.forEach(k=>menaces[k]= n ? {boxes:n.menaces[k][0], over:n.menaces[k][1]} : {boxes:3,over:8});
+  activeBumps().forEach(b=>{ const v=S.bumps[b.key]; if(b.kind==="menaceDown"&&v&&menaces[v]) menaces[v].over-=1; });
+
+  const obs=[{name:"Grand Ambition",detail:S.ambition||"[your angle on the concern's grand ambition]",strength:3,src:"concern",fixed:true}];
+  if(d&&d.obsession&&(d.required||S.dispOptIn)) obs.push({name:d.obsession,detail:(S.bumps.obsDetail||d.obsessionDetail),strength:3,src:d.name});
+  if(t&&t.obsessions) t.obsessions.forEach(x=>obs.push({...x,src:t.name}));
+  S.extraObs.forEach(x=>{ if(x.name) obs.push({name:x.name,detail:x.detail,strength:Number(x.strength)||3,src:"chosen"}); });
+  const obsTotal=obs.reduce((s,x)=>s+x.strength,0);
+  const obsCap=(t&&t.obsCap)||10, obsOver=(t&&t.obsOvercome)||8;
+
+  const aoe=[];
+  if(o) aoe.push({name:o.name,level:2,free:true,src:"origin"});
+  if(t&&t.freeAoE) aoe.push({...t.freeAoE,free:true,src:t.name});
+  S.aoe.forEach(x=>aoe.push({...x,free:false}));
+  const points = 2 + ((n&&n.aoeBonus)||0) + ((t&&t.aoeBonus)||0);
+  const spent = S.aoe.reduce((s,x)=>s+x.level,0);
+
+  const notices=[];
+  const missing=[["nature","a nature"],["origin","an origin"],["profession","a profession"],["disposition","a disposition"],["association","an association"],["twist","a twist"]].filter(([k])=>!S[k]);
+  if(missing.length) notices.push(["warn","Still to choose: "+missing.map(m=>m[1]).join(", ")+"."]);
+  if(p&&p.forcedTwist&&S.twist!==p.forcedTwist) notices.push(["err",p.name+" requires the "+p.forcedTwist+" twist."]);
+  if(t&&t.requiresProfession&&S.profession!==t.requiresProfession&&S.profession2!==t.requiresProfession)
+    notices.push(["err",t.name+" requires the "+t.requiresProfession+" profession."]);
+  if(t&&t.secondProfession&&!S.profession2) notices.push(["warn","Another String in Your Bow: choose your second profession."]);
+  if(p&&!S.profChoice) notices.push(["warn",p.name+": choose which of its three skills gets the extra rank."]);
+  if(!S.attr2||!S.attr0) notices.push(["warn","Assign your attributes: one at 2, one at 0, the rest at 1."]);
+  else if(S.attr2===S.attr0) notices.push(["err","The same attribute cannot be both your 2 and your 0."]);
+  activeBumps().forEach(b=>{ if(S.bumps[b.key]==null||S.bumps[b.key]==="") notices.push(["warn",b.from+": "+b.label.split(":")[0]+" is unspent."]); });
+  if(obsTotal>obsCap) notices.push(["err","Obsessions total "+obsTotal+", over the maximum of "+obsCap+"."]);
+  if(obsTotal-3>7) notices.push(["err","That is "+(obsTotal-3)+" new obsession levels; character creation allows 7 beyond the grand ambition."]);
+  if(obs.length<2) notices.push(["warn","You must begin play with your grand ambition and at least one other obsession."]);
+  if(spent<points) notices.push(["warn",(points-spent)+" level(s) of Area of Expertise unspent."]);
+  if(spent>points) notices.push(["err","Areas of Expertise overspent by "+(spent-points)+" level(s)."]);
+  const emptySlots=GEAR_SLOTS.filter(x=>!S.gear[x.key]);
+  if(emptySlots.length) notices.push(["warn","Kit unfilled: "+emptySlots.map(x=>x.label.toLowerCase()).join(", ")+"."]);
+  if(!S.name) notices.push(["warn","Your character has no name yet."]);
+  if(!S.ambition) notices.push(["warn","Write your angle on the concern's grand ambition."]);
+  if(!notices.some(x=>x[0]!=="ok")&&S.twist) notices.push(["ok","Everything checks out. Sign the contract."]);
+
+  return {skills,attrs,menaces,obs,obsTotal,obsCap,obsOver,aoe,points,spent,notices};
+}
+
+/* ============================ RENDER: RAIL ============================ */
+function renderRail(){
+  $("#rail").innerHTML = STEPS.map((s,i)=>{
+    let pick="";
+    if(s.key==="attributes") pick = S.attr2?(S.attr2.slice(0,3)+" 2 · "+S.attr0.slice(0,3)+" 0"):"";
+    else if(s.key==="obsessions") pick = S.ambition?"ambition set":"";
+    else if(s.key==="expertise"){ const c=compute(); pick = c.spent+"/"+c.points+" levels"; }
+    else if(s.key==="kit"){ const f=GEAR_SLOTS.filter(x=>S.gear[x.key]).length; pick = f?f+"/6 filled":""; }
+    else if(s.key==="details") pick = S.name||"";
+    else pick = S[s.key]||"";
+    return '<li><button class="step-btn'+(pick?" done":"")+'" data-step="'+i+'" aria-current="'+(i===S.step)+'" type="button">'+
+      '<span class="num">'+s.n+'</span><span><span>'+s.title+'</span>'+
+      (pick?'<span class="pick">'+esc(pick)+'</span>':'<span class="pick" style="color:var(--ink-dim)">'+s.sub+'</span>')+'</span></button></li>';
+  }).join("");
+}
+
+/* ============================ RENDER: STEP ============================ */
+const cardHTML = (name,selected,flavour,mech,tag,dim) =>
+  '<button class="card'+(dim?" taken":"")+'" data-pick="'+esc(name)+'" aria-pressed="'+(!!selected)+'" type="button">'+
+  (tag?'<span class="tag">'+esc(tag)+'</span>':'')+
+  '<h3>'+esc(name)+'</h3>'+
+  (flavour?'<div class="flavour">'+esc(flavour)+'</div>':'')+
+  (mech&&mech.length?'<div class="mech">'+mech.map(m=>'<span>'+m+'</span>').join("")+'</div>':'')+'</button>';
+
+function rankLabel(l){return RANKNAME[l];}
+function skillOptions(sel,cap,skills){
+  const opts=['<option value="">— choose —</option>'];
+  const pool=ALL_SKILLS.concat(SPECIAL_SKILLS.filter(s=>skills[s]));
+  pool.forEach(s=>{
+    const c=skills[s]?skills[s].lvl:0, nl=Math.min(c+1,cap,3);
+    const txt = nl>c ? s+" → "+RANKNAME[nl] : s+" (no gain, capped)";
+    opts.push('<option value="'+esc(s)+'"'+(sel===s?" selected":"")+(nl>c?"":" disabled")+'>'+txt+"</option>");
+  });
+  return opts.join("");
+}
+function bumpControls(list,skills,attrs){
+  if(!list.length) return "";
+  return '<div class="detail">'+list.map(b0=>{
+    const b=(b0.kind==="skillBump")?{...b0,kind:"skillRank"}:b0;
+    const v=S.bumps[b.key]||"";
+    let ctrl="";
+    if(b.kind==="skillRank") ctrl='<select data-bump="'+b.key+'">'+skillOptions(v,b.cap,skills)+"</select>";
+    if(b.kind==="attrBump") ctrl='<select data-bump="'+b.key+'"><option value="">— choose —</option>'+
+      ATTRS.map(a=>'<option value="'+a+'"'+(v===a?" selected":"")+(attrs[a]>=b.cap?" disabled":"")+'>'+a+" "+attrs[a]+(attrs[a]>=b.cap?" (at maximum)":" → "+(attrs[a]+1))+"</option>").join("")+"</select>";
+    if(b.kind==="menaceDown") ctrl='<select data-bump="'+b.key+'"><option value="">— choose —</option>'+
+      MENACES.map(m=>'<option value="'+m+'"'+(v===m?" selected":"")+">"+m+"</option>").join("")+"</select>";
+    if(b.kind==="choice"){
+      ctrl='<select data-bump="'+b.key+'"><option value="">— choose —</option>'+
+        b.options.map((o,i)=>'<option value="'+i+'"'+(v===String(i)?" selected":"")+">"+esc(o)+"</option>").join("")+"</select>";
+      if(v==="0") ctrl+='<select data-bump="'+b.key+'_t" style="margin-top:.35rem"><option value="">— attribute —</option>'+
+        ATTRS.map(a=>'<option value="'+a+'"'+(S.bumps[b.key+"_t"]===a?" selected":"")+(attrs[a]===2?"":" disabled")+'>'+a+" "+attrs[a]+(attrs[a]===2?" → 3":" (must be at 2)")+"</option>").join("")+"</select>";
+      if(v==="1"||v==="2") ctrl+='<select data-bump="'+b.key+'_t" style="margin-top:.35rem">'+skillOptions(S.bumps[b.key+"_t"],v==="1"?2:3,skills)+"</select>";
+    }
+    if(!ctrl) ctrl='<select data-bump="'+b.key+'">'+skillOptions(v,b.cap||2,skills)+"</select>";
+    return '<div class="field"><span class="lbl">'+esc(b.from)+"</span><span class='hint'>"+esc(b.label)+"</span>"+ctrl+"</div>";
+  }).join("")+"</div>";
+}
+function specialRef(name){
+  const i=SPECIAL_INFO[name]; if(!i) return "";
+  return '<div class="specialref"><span class="lbl">Special skill</span><h4>'+esc(name)+"</h4>"+
+    "<p>"+esc(i.what)+"</p>"+
+    '<p><span class="lbl">Attribute</span><br>'+esc(i.attr)+"</p>"+
+    '<p><span class="lbl">Cost &amp; limits</span><br>'+esc(i.limit)+"</p>"+
+    '<p><span class="lbl">Typical stakes</span></p><ul>'+i.stakes.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>"+
+    '<p class="rank-note">Granted by: '+esc(i.from)+". "+esc(SPECIAL_NOTE)+"</p></div>";
+}
+function chips(list,target){
+  return '<div class="chips">'+list.map(x=>'<button class="chip" type="button" data-chip="'+esc(target)+'" data-val="'+esc(x)+'">'+esc(x)+"</button>").join("")+"</div>";
+}
+function textField(label,hint,key,value,area){
+  return '<div class="field"><span class="lbl">'+label+"</span>"+(hint?'<span class="hint">'+hint+"</span>":"")+
+    (area?'<textarea data-text="'+key+'">'+esc(value)+"</textarea>":'<input type="text" data-text="'+key+'" value="'+esc(value)+'">')+"</div>";
+}
+
+function renderGearList(){
+  const box=document.getElementById("gear-list"); if(!box) return;
+  const slot=GEAR_SLOTS.find(x=>x.key===S.slot)||GEAR_SLOTS[0];
+  const q=(S.gearQuery||"").toLowerCase().trim();
+  const list=GEAR.filter(g=>g.k===slot.kind)
+    .filter(g=>!S.gearCat||g.c===S.gearCat)
+    .filter(g=>!q||(g.n+" "+g.t+" "+g.p.join(" ")+" "+g.s.join(" ")).toLowerCase().includes(q));
+  if(!list.length){ box.innerHTML='<p class="hint">Nothing in the catalogue matches that.</p>'; return; }
+  box.innerHTML='<div class="gearlist">'+list.map(g=>{
+    const chosen=S.gear[slot.key]===g.n;
+    return '<div class="gcard'+(chosen?" chosen":"")+'"><div class="ghd">'+
+      '<button class="gname" type="button" data-pickgear="'+esc(g.n)+'">'+esc(g.n)+"</button>"+
+      '<span class="gmeta">'+esc(g.c)+(g.u?" · "+g.u+" use"+(g.u>1?"s":""):"")+"</span></div>"+
+      '<p class="gtag">'+esc(g.t)+"</p>"+
+      '<details class="sdet"><summary>purpose &amp; traits</summary>'+
+        (g.p.length?"<ul>"+g.p.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+
+        (g.s.length?'<p><b>Special traits.</b></p><ul>'+g.s.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+
+        (g.g?"<p><b>How to gain.</b> "+esc(g.g)+"</p>":"")+
+        (g.l?"<p><b>How to lose.</b> "+esc(g.l)+"</p>":"")+
+      "</details></div>";
+  }).join("")+"</div>";
+}
+function renderStep(){
+  const c=compute(), step=STEPS[S.step], k=step.key;
+  
+  $("#step-title").textContent = step.title;
+  const B=$("#step-body");
+  let intro="", html="";
+
+  if(k==="nature"){
+    intro="Your nature sets your menace tracks — how many boxes each menace holds, and the level at which it overcomes you. It is the one identity your character never chose.";
+    html = '<div class="cards">'+NATURES.map(n=>cardHTML(n.name,S.nature===n.name,n.flavour,
+      MENACES.map(m=>'<span><b>'+m+'</b> '+n.menaces[m][0]+" boxes, overcome "+n.menaces[m][1]+"</span>"))).join("")+"</div>";
+    const n=nat();
+    if(n) html += '<div class="detail"><div class="field"><span class="lbl">Abilities &amp; traits</span><div class="mech" style="font-family:var(--mono);font-size:.72rem;color:var(--ink-muted);display:flex;flex-direction:column;gap:.25rem">'+
+      n.mech.map(m=>"<span>"+esc(m)+"</span>").join("")+"</div></div>"+
+      ((n.grants||[]).filter(g=>SPECIAL_INFO[g.skill]).map(g=>specialRef(g.skill)).join(""))+"</div>"+
+      bumpControls((n.bumps||[]).map(b=>({...b,from:n.name})),c.skills,c.attrs);
+  }
+
+  if(k==="origin"){
+    intro="The place that most shaped you — not necessarily where you were born. It grants an Area of Expertise at Veteran and one piece of equipment.";
+    html = '<div class="cards">'+ORIGINS.map(o=>cardHTML(o.name,S.origin===o.name,o.flavour,
+      ["<span><b>AoE</b> "+esc(o.name)+" at Veteran</span>"])).join("")+"</div>";
+    const o=ori();
+    if(o) html += '<div class="detail"><div class="field"><span class="lbl">Equipment it suggests</span><span class="hint">'+o.equipment.join(" · ")+' — pick one in Step X, Kit.</span></div></div>';
+  }
+
+  if(k==="profession"){
+    intro="Your defining skillset, and how you earn a living between ventures. One skill at Adept, a second at Trained, plus one extra rank among three — then equipment and a two-use resource.";
+    html = '<div class="cards">'+PROFESSIONS.map(p=>cardHTML(p.name,S.profession===p.name,p.flavour,
+      [ "<span><b>"+esc(p.adept)+"</b> Adept"+(p.trained?" · <b>"+esc(p.trained)+"</b> Trained":"")+"</span>",
+        "<span>+1 rank: "+p.choice.join(" / ")+"</span>" ].concat(p.forcedTwist?["<span style='color:var(--violant)'>requires the "+p.forcedTwist+" twist</span>"]:[]),
+      p.special?"special skill":null)).join("")+"</div>";
+    const p=pro();
+    if(p){
+      html += '<div class="detail"><div class="field"><span class="lbl">Extra rank</span><span class="hint">Add one rank to one of these three skills.</span>'+
+        '<select data-prof-choice="1"><option value="">— choose —</option>'+p.choice.map(s=>{
+          const cur=c.skills[s]?c.skills[s].lvl:0; const nl=Math.min(cur+1,2);
+          return '<option value="'+esc(s)+'"'+(S.profChoice===s?" selected":"")+">"+s+" → "+RANKNAME[nl]+"</option>";
+        }).join("")+"</select></div>"+
+        '<div class="field"><span class="lbl">Equipment &amp; resource it suggests</span><span class="hint">'+p.equipment.join(" · ")+" — and "+p.resource.join(" · ")+". Choose in Step X, Kit.</span></div>"+
+        '<div class="field"><span class="lbl">Suggested Areas of Expertise</span><span class="hint">'+p.aoe.join(" · ")+"</span></div>"+
+        (p.ability?'<div class="field"><span class="lbl">Ability</span><span class="hint">'+esc(p.ability)+"</span></div>":"")+
+        (SPECIAL_INFO[p.adept]?specialRef(p.adept):"")+"</div>";
+    }
+  }
+
+  if(k==="disposition"){
+    intro="Your personality baseline. Most dispositions hand you an obsession at strength 3 — and several say you may never lose or resolve it.";
+    html = '<div class="cards">'+DISPOSITIONS.map(d=>cardHTML(d.name,S.disposition===d.name,d.flavour,
+      ["<span><b>"+esc(d.obsession)+" 3</b> "+(d.required?"required":"optional")+"</span>","<span>"+esc(d.mech)+"</span>"])).join("")+"</div>";
+    const d=dis();
+    if(d){
+      html += '<div class="detail">';
+      if(!d.required) html += '<label class="field" style="flex-direction:row;gap:.5rem;align-items:center"><input type="checkbox" data-optin="1" '+(S.dispOptIn?"checked":"")+' style="width:auto"> <span>Take the optional obsession <b>'+esc(d.obsession)+' 3</b> — '+esc(d.obsessionDetail)+"</span></label>";
+      if(d.required||S.dispOptIn) html += textField("Obsession detail","Fill in the bracketed prompt in your own words.","obsDetail",S.bumps.obsDetail||"");
+      html += "</div>";
+    }
+  }
+
+  if(k==="association"){
+    intro="The faction you are known to run with. It gives you a connection — an NPC of use rather than affection — and a two-use resource.";
+    html = '<div class="cards">'+ASSOCIATIONS.map(a=>cardHTML(a.name,S.association===a.name,a.flavour,
+      ["<span><b>Connection</b> "+esc(a.name)+"</span>","<span>AoE: "+a.aoe.slice(0,3).join(" · ")+"</span>"])).join("")+"</div>";
+    const a=aso();
+    if(a) html += '<div class="detail">'+textField("Connection","Who are they, and what are they good for?","connection",S.connection)+
+      '<div class="field"><span class="lbl">Resource it suggests</span><span class="hint">'+a.resource.join(" · ")+" — choose in Step X, Kit.</span></div></div>";
+  }
+
+  if(k==="twist"){
+    intro="The one identity no two characters at the table may share. Three twists are locked to a profession, and several carry an obsession of their own.";
+    const p=pro();
+    html = '<div class="cards">'+TWISTS.map(t=>{
+      const blocked = t.requiresProfession && S.profession && S.profession!==t.requiresProfession && S.profession2!==t.requiresProfession;
+      return cardHTML(t.name,S.twist===t.name,t.flavour,
+        t.mech.slice(0,2).map(m=>"<span>"+esc(m)+"</span>").concat(t.obsessions?["<span style='color:var(--violant)'>obsession: "+t.obsessions.map(o=>o.name+" 3").join(" + ")+"</span>"]:[]),
+        t.requiresProfession?t.requiresProfession:null, blocked);
+    }).join("")+"</div>";
+    const t=twi();
+    if(t){
+      html += '<div class="detail"><div class="field"><span class="lbl">'+esc(t.name)+'</span><div class="mech" style="font-family:var(--mono);font-size:.72rem;color:var(--ink-muted);display:flex;flex-direction:column;gap:.25rem">'+
+        t.mech.map(m=>"<span>"+esc(m)+"</span>").join("")+"</div></div>";
+      if(t.choice) html += '<div class="field"><span class="lbl">'+esc(t.choice.label)+'</span><select data-bump="'+t.choice.key+'"><option value="">— choose —</option>'+
+        t.choice.options.map(o=>'<option value="'+esc(o)+'"'+(S.bumps[t.choice.key]===o?" selected":"")+">"+esc(o)+"</option>").join("")+"</select></div>";
+      if(t.secondProfession) html += '<div class="field"><span class="lbl">Second profession</span><select data-prof2="1"><option value="">— choose —</option>'+
+        PROFESSIONS.filter(x=>x.name!==S.profession).map(x=>'<option value="'+esc(x.name)+'"'+(S.profession2===x.name?" selected":"")+">"+esc(x.name)+"</option>").join("")+"</select>"+
+        (S.profession2?'<select data-prof-choice="2" style="margin-top:.35rem"><option value="">— extra rank —</option>'+
+          pro2().choice.map(s=>'<option value="'+esc(s)+'"'+(S.profChoice2===s?" selected":"")+">"+esc(s)+"</option>").join("")+"</select>":"")+"</div>";
+      const tsp=[].concat((t.grants||[]).map(g=>g.skill), t.requiresProfession?[(find(PROFESSIONS,t.requiresProfession)||{}).adept]:[])
+        .filter(x=>SPECIAL_INFO[x]).filter((v,i,a)=>a.indexOf(v)===i);
+      html += tsp.map(specialRef).join("")+"</div>"+bumpControls((t.bumps||[]).map(b=>({...b,from:t.name})),c.skills,c.attrs);
+    }
+  }
+
+  if(k==="attributes"){
+    intro="Assign 2, 1, 1 and 0 across the four attributes. Your attribute is the number of d6 you pick up before your skill, your circumstances and your assets are counted.";
+    html = '<div class="attrs">'+ATTRS.map(a=>'<div class="attr"><span class="lbl">'+a+'</span><span class="val">'+c.attrs[a]+"</span><span class='hint'>"+SKILLS[a].join(" · ")+"</span></div>").join("")+"</div>"+
+      '<div class="detail"><div class="row">'+
+      '<div class="field"><span class="lbl">Attribute at 2</span><select data-attr="2"><option value="">— choose —</option>'+ATTRS.map(a=>'<option value="'+a+'"'+(S.attr2===a?" selected":"")+">"+a+"</option>").join("")+"</select></div>"+
+      '<div class="field"><span class="lbl">Attribute at 0</span><select data-attr="0"><option value="">— choose —</option>'+ATTRS.map(a=>'<option value="'+a+'"'+(S.attr0===a?" selected":"")+">"+a+"</option>").join("")+"</select></div>"+
+      "</div><p class='hint'>The remaining two sit at 1. Nature and twist adjustments are applied on top, on their own steps.</p></div>";
+  }
+
+  if(k==="obsessions"){
+    intro="You begin with a strength-3 obsession tied to your concern's grand ambition, at least one more besides, and no more than 10 total strength — which means no more than 7 new levels here.";
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      textField("Grand ambition","“to … because …” — your character's angle on the concern's shared goal.","ambition",S.ambition,true)+
+      '<div class="field"><span class="lbl">Obsession ledger</span><div class="obs">'+
+        c.obs.map(o=>'<div class="obsrow"><span class="os">'+o.strength+'</span><span><b>'+esc(o.name)+'</b> <span class="od">'+esc(o.detail||"")+" — "+esc(o.src)+"</span></span></div>").join("")+
+      '</div><div class="meter'+(c.obsTotal>c.obsCap?" over":"")+'"><i style="width:'+Math.min(100,c.obsTotal/c.obsCap*100)+'%"></i></div>'+
+      '<span class="hint">'+c.obsTotal+" of "+c.obsCap+" total strength · "+(c.obsTotal-3)+" of 7 new levels · overcome at strength "+c.obsOver+"</span></div>"+
+      '<div class="field"><span class="lbl">Add another obsession</span><div class="row">'+
+        '<input type="text" data-extra="name" placeholder="Category (e.g. Vengeance)" value="'+esc(S.newObs&&S.newObs.name||"")+'">'+
+        '<input type="text" data-extra="detail" placeholder="Specific description" value="'+esc(S.newObs&&S.newObs.detail||"")+'">'+
+        '<select data-extra="strength" style="flex:0 0 6rem"><option>1</option><option>2</option><option selected>3</option><option>4</option></select>'+
+        '<button class="btn" type="button" data-act="add-obs" style="flex:0 0 auto">Add</button></div>'+
+        (S.extraObs.length?'<div class="chips" style="margin-top:.5rem">'+S.extraObs.map((o,i)=>'<button class="chip" type="button" data-act="del-obs" data-i="'+i+'">'+esc(o.name)+" "+o.strength+" ✕</button>").join("")+"</div>":"")+
+      "</div></div>";
+  }
+
+  if(k==="expertise"){
+    intro="Your origin gives one Area of Expertise at Veteran for free. Beyond that you have levels to spend: a new area starts at Casual, and each further level raises it — Casual answers one question, Veteran two, Esoteric three.";
+    const sugg=[].concat(pro()?pro().aoe:[],aso()?aso().aoe:[]).filter((v,i,a)=>a.indexOf(v)===i);
+    html = '<div class="detail" style="border-top:0;padding-top:0"><div class="field"><span class="lbl">Levels</span>'+
+      '<span class="hint">'+c.spent+" of "+c.points+" spent"+((nat()&&nat().aoeNote)?" · "+nat().aoeNote:"")+((twi()&&twi().aoeNote)?" · "+twi().aoeNote:"")+"</span></div>"+
+      '<div class="field"><span class="lbl">Areas of Expertise</span>'+
+        c.aoe.map(x=>'<div class="kv"><span class="k">'+esc(x.name)+(x.free?' <span class="rank-note">('+esc(x.src)+", free)</span>":"")+'</span><span class="v">'+AOENAME[x.level]+
+          (x.free?"":' <button class="chip" type="button" data-act="aoe-down" data-name="'+esc(x.name)+'">−</button><button class="chip" type="button" data-act="aoe-up" data-name="'+esc(x.name)+'">+</button><button class="chip" type="button" data-act="aoe-del" data-name="'+esc(x.name)+'">✕</button>')+"</span></div>").join("")+"</div>"+
+      '<div class="field"><span class="lbl">Add an area</span><span class="hint">Suggested by your profession and association:</span>'+chips(sugg,"__aoe")+
+      '<div class="row" style="margin-top:.4rem"><input type="text" data-extra="aoe" placeholder="Or name your own" value=""><button class="btn" type="button" data-act="add-aoe" style="flex:0 0 auto">Add at Casual</button></div></div></div>';
+  }
+
+  if(k==="kit"){
+    intro="Notable items only. A notable piece of equipment or resource lends you a bonus die whenever it genuinely applies — basic kit (a knife, a quill, ordinary clothes) never does, and is not worth tracking. Equipment is reusable; a resource is spent as it is used.";
+    const slot=GEAR_SLOTS.find(x=>x.key===S.slot)||GEAR_SLOTS[0];
+    const sugg={originEq:(ori()?ori().equipment:[]),profEq:(pro()?pro().equipment:[]),profRes:(pro()?pro().resource:[]),
+                assocRes:(aso()?aso().resource:[]),extraEq:[],extraRes:[]};
+    html = '<div class="slots">'+GEAR_SLOTS.map(x=>{
+      const val=S.gear[x.key], it=val?gearItem(val):null;
+      return '<button class="slot'+(S.slot===x.key?" active":"")+(val?" full":"")+'" type="button" data-slot="'+x.key+'">'+
+        '<span class="lbl"'+(x.kind==="res"?' style="color:var(--violant)"':"")+">"+x.label+"</span>"+
+        '<span class="sval">'+(val?esc(val):"— empty —")+"</span>"+
+        (it&&it.u?'<span class="rank-note">book lists '+it.u+" use"+(it.u>1?"s":"")+"</span>":'<span class="rank-note">'+esc(x.note)+"</span>")+
+        (val?'<span class="sclear" data-clear="'+x.key+'" role="button" tabindex="0">clear</span>':"")+"</button>";
+    }).join("")+"</div>";
+
+    const cur=S.gear[slot.key]?gearItem(S.gear[slot.key]):null;
+    html += '<div class="detail"><div class="field"><span class="lbl">Filling: '+esc(slot.label)+'</span>'+
+      (sugg[slot.key]&&sugg[slot.key].length?'<span class="hint">Suggested by your '+(slot.key.indexOf("assoc")===0?"association":slot.key.indexOf("prof")===0?"profession":"origin")+":</span>"+chips(sugg[slot.key],slot.key):
+        '<span class="hint">Tie it to any of your identities — the GM is the final arbiter of whether it makes sense.</span>')+
+      '<input type="text" data-text="'+slot.key+'" value="'+esc(S.gear[slot.key]||"")+'" placeholder="Write it in, or choose from the catalogue below">'+
+      (cur?'<div class="specialref" style="margin-top:.5rem"><span class="lbl">'+esc(cur.c)+"</span><h4>"+esc(cur.n)+"</h4><p><em>"+esc(cur.t)+"</em></p>"+
+        (cur.p.length?'<p><span class="lbl">Purpose</span></p><ul>'+cur.p.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+
+        (cur.s.length?'<p><span class="lbl">Special traits</span></p><ul>'+cur.s.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+
+        (cur.g?'<p><span class="lbl">How to gain</span><br>'+esc(cur.g)+"</p>":"")+
+        (cur.l?'<p><span class="lbl">How to lose</span><br>'+esc(cur.l)+"</p>":"")+"</div>":"")+
+      "</div></div>";
+
+    html += '<div class="detail"><div class="field"><span class="lbl">Catalogue — Chapter 6</span>'+
+      '<span class="hint">'+(slot.kind==="eq"?"Equipment: reusable, and never used up.":"Resources: every one comes with a limited number of uses.")+
+      ' Showing '+(slot.kind==="eq"?"equipment":"resources")+' for '+esc(slot.label)+'.</span>'+
+      '<div class="row" style="margin:.1rem 0 .45rem"><input type="text" data-gearq="1" value="'+esc(S.gearQuery)+'" placeholder="Search the catalogue">'+
+      '<button class="btn" type="button" data-act="load-cat" style="flex:0 0 auto">Load catalogue…</button></div>'+
+      '<span class="rank-note">'+GEAR.length+" items, from "+esc(GEAR_SOURCE)+"</span>"+
+      '<div class="chips" style="margin-top:.45rem">'+
+        '<button class="chip'+(S.gearCat===""?" on":"")+'" type="button" data-gearcat="">all</button>'+
+        gearCats().filter(c=>GEAR.some(g=>g.c===c&&g.k===slot.kind)).map(c=>
+          '<button class="chip'+(S.gearCat===c?" on":"")+'" type="button" data-gearcat="'+esc(c)+'">'+esc(c)+"</button>").join("")+
+      "</div></div><div id=\"gear-list\"></div></div>";
+
+    html += '<div class="detail"><div class="legend"><dl>'+
+      "<dt>Carrying it</dt><dd>At the start of a venture you may carry up to <b>six different notable resources</b> — each gains <b>two extra uses</b> for being prepared in advance — and as much <b>notable equipment</b> as is reasonable. Leave a resource slot open and you may instead reveal, mid-venture, that you had one along: fewer uses, but the right item at the right moment.</dd>"+
+      "<dt>Getting more</dt><dd>Find someone willing to part with it, then pay the price — Echoes, a favour, a trade, or the Scandal and Suspicion of simply taking it.</dd>"+
+      "<dt>A visit from a devil</dt><dd>Some items — the Lucky Devilbone Die among them — end with a devil calling on you to negotiate the price of your continued good fortune. The book leaves these open on purpose: play it as a quiet scene, or as a whole conflict, whichever suits the table. Their job is to make new trouble, not to be priced in advance.</dd>"+
+      "<dt>Intangibles</dt><dd>A reputation can be an item. As equipment it is permanent — you did something no one will forget. As a resource it is temporary, occupies one of your six slots, and must be restored to be used again.</dd></dl></div></div>";
+  }
+
+  if(k==="details"){
+    intro="The rest of the sheet: who you are, what you carry, what grounds you, and what you hope for that is not an obsession.";
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      '<div class="row">'+textField("Name","","name",S.name)+"</div>"+
+      textField("Your look","What the others see when you come into view.","look",S.look,true)+
+'<div class="field"><span class="lbl">Mundanity</span><span class="hint">One to three of: '+MUNDANITIES.join(" · ")+" — grounding, and strictly separate from your obsessions.</span>"+
+      '<input type="text" data-text="mundanity" value="'+esc(S.mundanity)+'"></div>'+
+      textField("Goal","Something you hope to achieve — wanted, but not at all costs.","goal",S.goal)+
+      '<div class="field"><span class="lbl">Bonds</span><span class="hint">One for every other character in the concern. Usually mutual — but a split reading, where each of you sees it differently, is fair game.</span>'+
+        (S.bonds.length?'<div class="bonds">'+S.bonds.map((b,i)=>
+          '<div class="bondrow"><input type="text" data-bondname="'+i+'" value="'+esc(b.name||"")+'" placeholder="Their character\'s name">'+
+          '<select data-bondkind="'+i+'">'+BONDS.map(x=>'<option value="'+x+'"'+(b.bond===x?" selected":"")+">"+x+"</option>").join("")+"</select>"+
+          '<button class="chip" type="button" data-act="del-bond" data-i="'+i+'" aria-label="Remove bond">✕</button></div>').join("")+"</div>":"")+
+        '<div class="row" style="margin-top:.45rem"><button class="btn" type="button" data-act="add-bond" style="flex:0 0 auto">Add a bond</button>'+
+        '<span class="hint" style="flex:1 1 14rem">'+BONDS.join(" · ")+"</span></div></div></div>";
+  }
+
+  $("#step-intro").textContent=intro;
+  B.innerHTML=html;
+  if(k==="kit") renderGearList();
+  $("#step-eyebrow").textContent = "Step "+(S.step+1)+" of "+STEPS.length+" \u00b7 "+step.sub;
+}
+
+/* ============================ RENDER: SHEET ============================ */
+const RANKNOTE={1:"+1d6",2:"+1d6 or min 1 hit",3:"+1 hit"};
+function chargeBoxes(name){
+  const n=S.charges[name]||0;
+  return '<span class="charges" title="charges (0–3)">'+[0,1,2].map(i=>
+    '<button class="chg'+(i<n?" on":"")+'" type="button" data-chg="'+esc(name)+'" data-i="'+i+'" aria-label="Set '+esc(name)+' to '+(i+1)+' charges"></button>').join("")+"</span>";
+}
+function traitList(){
+  const out=[], n=nat(), p=pro(), p2=pro2(), d=dis(), t=twi();
+  if(n) n.mech.forEach(m=>out.push({src:n.name,text:m}));
+  if(p&&p.ability) out.push({src:p.name,text:p.ability});
+  if(p2&&p2.ability) out.push({src:p2.name,text:p2.ability});
+  if(d) out.push({src:d.name,text:d.mech});
+  if(t) t.mech.forEach(m=>out.push({src:t.name,text:m}));
+  if(S.bumps.corr_sigil) out.push({src:"Sigil",text:S.bumps.corr_sigil});
+  return out;
+}
+function renderSheet(){
+  const c=compute();
+  $("#sheet-name").textContent = S.name || "An Unnamed Party";
+  const bits=[S.nature,S.origin,S.profession,S.disposition,S.association,S.twist].filter(Boolean);
+  $("#sheet-line").textContent = bits.length?bits.join(" · "):"no identities chosen";
+
+  const menaceHTML = MENACES.map(m=>{
+    const v=c.menaces[m], lvl=Math.min(S.menaceLevel[m]||0,v.over);
+    return '<div class="menace m-'+m.toLowerCase()+'"><span class="name">'+m+'</span>'+
+      '<span class="boxes">'+Array.from({length:v.boxes},()=>"<i></i>").join("")+"</span>"+
+      '<span class="track'+(lvl>=v.over?" out":"")+'">'+
+        '<button class="tbtn" type="button" data-mlvl="'+m+'" data-d="-1" aria-label="Lower '+m+' level">−</button>'+
+        '<span class="tval">'+lvl+"</span><span class=\"tsep\">/</span><span class=\"tmax\">"+v.over+"</span>"+
+        '<button class="tbtn" type="button" data-mlvl="'+m+'" data-d="1" aria-label="Raise '+m+' level">+</button>'+
+      "</span></div>";
+  }).join("");
+
+  const skillHTML = ATTRS.map(a=>{
+    return '<div class="skillgroup"><span class="lbl">'+a+' <span style="color:var(--brass)">'+c.attrs[a]+"d</span></span>"+
+      SKILLS[a].map(s=>{
+        const k=c.skills[s];
+        return '<div class="skillrow'+(k?" has":"")+'"><span class="sname">'+s+"</span>"+
+          (k?'<span class="rank r'+k.lvl+'">'+RANKNAME[k.lvl]+'</span><span class="rank-note">'+RANKNOTE[k.lvl]+"</span>":'<span class="rank-note">untrained</span>')+"</div>";
+      }).join("")+"</div>";
+  }).join("");
+  const specials=SPECIAL_SKILLS.filter(s=>c.skills[s]);
+  const specialHTML = specials.length?'<div class="skillgroup"><span class="lbl">Special skills</span>'+specials.map(s=>{
+    const inf=SPECIAL_INFO[s];
+    return '<div class="skillrow has"><span class="sname">'+s+'</span><span class="rank r'+c.skills[s].lvl+'">'+RANKNAME[c.skills[s].lvl]+"</span></div>"+
+      (inf?'<details class="sdet"><summary>what it does</summary><p>'+esc(inf.what)+"</p><p><b>Attribute.</b> "+esc(inf.attr)+"</p><p><b>Cost &amp; limits.</b> "+esc(inf.limit)+"</p></details>":"");
+  }).join("")+"</div>":"";
+
+  const kitRows=GEAR_SLOTS.filter(x=>S.gear[x.key]).map(x=>({slot:x,val:S.gear[x.key],item:gearItem(S.gear[x.key])}));
+
+  $("#sheet-body").innerHTML =
+    '<div class="sect"><span class="lbl">Menaces</span>'+
+      '<div class="menace" style="padding-bottom:.15rem"><span class="name" style="color:var(--ink-dim)">track</span>'+
+      '<span class="rank-note">boxes</span><span class="track" style="color:var(--ink-dim)"><span class="rank-note">level / overcome</span></span></div>'+menaceHTML+
+      '<p class="rank-note" style="margin-top:.5rem">Fill every box → erase them, raise the level by 1, take a complication.</p></div>'+
+    '<div class="sect"><span class="lbl">Attributes &amp; skills</span><div class="skillgrid">'+skillHTML+specialHTML+"</div></div>"+
+    '<div class="sect"><span class="lbl">Obsessions · '+c.obsTotal+"/"+c.obsCap+'</span><div class="obs">'+
+      c.obs.map(o=>'<div class="obsrow"><span class="os">'+o.strength+'</span><span><b>'+esc(o.name)+"</b> "+'<span class="od">'+esc(o.detail||"")+"</span>"+chargeBoxes(o.name)+"</span></div>").join("")+
+      '</div><div class="meter'+(c.obsTotal>c.obsCap?" over":"")+'"><i style="width:'+Math.min(100,c.obsTotal/c.obsCap*100)+'%"></i></div></div>'+
+    '<div class="sect"><span class="lbl">Areas of expertise</span>'+
+      (c.aoe.length?c.aoe.map(x=>'<div class="kv"><span class="k">'+esc(x.name)+'</span><span class="v">'+AOENAME[x.level]+"</span></div>").join(""):'<span class="rank-note">none yet</span>')+
+      '<div class="kv" style="margin-top:.3rem"><span class="k rank-note">levels spent</span><span class="v">'+c.spent+"/"+c.points+"</span></div></div>"+
+    (traitList().length?'<div class="sect"><span class="lbl">Traits &amp; abilities</span><div class="traits">'+
+      (function(){const g=[];traitList().forEach(t=>{const l=g[g.length-1]; if(l&&l.src===t.src) l.items.push(t.text); else g.push({src:t.src,items:[t.text]});});
+        return g.map(x=>'<div class="trait"><span class="tsrc">'+esc(x.src)+"</span>"+x.items.map(i=>"<span>"+esc(i)+"</span>").join("")+"</div>").join("");})()+"</div></div>":"")+
+    (kitRows.length||S.connection?'<div class="sect"><span class="lbl">Kit</span>'+
+      kitRows.map(r=>'<div class="kv"><span class="k">'+esc(r.slot.label)+'</span><span class="v">'+esc(r.val)+
+        (r.item&&r.item.u?' <span class="rank-note">'+r.item.u+"u</span>":"")+"</span></div>"+
+        (r.item?'<details class="sdet"><summary>'+esc(r.item.c)+'</summary><p><em>'+esc(r.item.t)+"</em></p>"+
+          (r.item.s.length?"<p><b>Special traits.</b> "+r.item.s.map(esc).join(" ")+"</p>":"")+"</details>":"")).join("")+
+      (S.connection?'<div class="kv"><span class="k">Connection</span><span class="v">'+esc(S.connection)+"</span></div>":"")+"</div>":"")+
+    (S.bonds.filter(b=>b.name).length?'<div class="sect"><span class="lbl">Bonds</span>'+
+      S.bonds.filter(b=>b.name).map(b=>'<div class="kv"><span class="k">'+esc(b.name)+'</span><span class="v">'+esc(b.bond||"")+"</span></div>").join("")+"</div>":"")+
+    ((S.mundanity||S.goal)?'<div class="sect"><span class="lbl">Grounding</span>'+
+      (S.mundanity?'<div class="kv"><span class="k">Mundanity</span><span class="v">'+esc(S.mundanity)+"</span></div>":"")+
+      (S.goal?'<div class="kv"><span class="k">Goal</span><span class="v">'+esc(S.goal)+"</span></div>":"")+"</div>":"")+
+    '<div class="sect"><span class="lbl">Checks</span>'+c.notices.map(n=>'<div class="notice '+n[0]+'"><span class="dot"></span><span>'+esc(n[1])+"</span></div>").join("")+"</div>"+
+    '<div class="sect legend"><span class="lbl">How the numbers are used</span><dl>'+
+      "<dt>Challenge roll</dt><dd>Pool = <b>attribute</b> + skill (<b>Trained</b> +1d6 · <b>Adept</b> +1d6 <em>or</em> a guaranteed 1 hit · <b>Master</b> +1 hit) + 1d6 for favourable circumstances + 1d6 for a genuinely useful asset. Every 5 or 6 is a hit; 0 dice means roll 2d6 and take the worse. A formidable challenge deletes your first hit.</dd>"+
+      "<dt>Menaces</dt><dd>Boxes absorb trouble; a full track empties, raises the level, and buys a complication. Reach the overcome number and you are out of play until you recover.</dd>"+"<dt>Bringing a menace down</dt><dd>Only an intermission does it: while <b>tending to your affairs</b> you roll 1 die + 1 per stable mundanity (&minus;1 if any obsession is at strength 5+, &minus;1 if you hold three or more obsessions, +1 if no menace sits at level 3+, +1 if nothing is frayed), and a success lets you take <b>one level off a menace</b> — two choices on a triumphant success. Go straight into another venture and nothing recovers at all.</dd>"+
+      "<dt>Areas of expertise</dt><dd>Mark 2 Nightmares to ask the GM questions: Casual 1, Veteran 2, Esoteric 3.</dd>"+
+      "<dt>Obsessions</dt><dd>Strength is how hard they pull. Ten total at most; overcome at strength "+c.obsOver+".</dd>"+"<dt>Bringing an obsession down</dt><dd>The same tending-to-affairs roll offers <b>&minus;1 strength to one obsession</b> instead, and that is the only healthy road down: it runs through your mundanities and connections, so losing them leaves you unmoored — and note that several dispositions and twists hand you an obsession you may <em>never</em> lose or resolve.</dd></dl></div>";
+  renderRail();
+}
+
+/* ============================ PRINT SHEET ============================ */
+function boxRow(n,filled){
+  let out="";
+  for(let i=0;i<n;i++) out+='<span class="box'+(i<(filled||0)?" on":"")+'"></span>';
+  return out;
+}
+function renderPrint(){
+  const c=compute(), el=document.getElementById("print-sheet");
+  const ids=[["Nature",S.nature],["Origin",S.origin],["Profession",S.profession+(S.profession2?" + "+S.profession2:"")],
+             ["Disposition",S.disposition],["Association",S.association],["Twist",S.twist]];
+  const sk=Object.keys(c.skills);
+  const kit=GEAR_SLOTS.filter(x=>S.gear[x.key]).map(x=>({slot:x,val:S.gear[x.key],item:gearItem(S.gear[x.key])}));
+  const specials=SPECIAL_SKILLS.filter(x=>c.skills[x]);
+  el.innerHTML =
+    "<h1>"+esc(S.name||"An Unnamed Party")+"</h1>"+
+    '<div class="p-sub">'+ids.filter(i=>i[1]).map(i=>esc(i[0])+": "+esc(i[1])).join(" &nbsp;·&nbsp; ")+"</div>"+
+    (S.look?'<p class="p-look">'+esc(S.look)+"</p>":"")+
+    '<div class="p-cols"><div>'+
+      "<h2>Attributes</h2><table>"+ATTRS.map(a=>"<tr><td>"+a+'</td><td class="num">'+c.attrs[a]+"d</td></tr>").join("")+"</table>"+
+      "<h2>Skills</h2><table>"+(sk.length?sk.map(x=>"<tr><td>"+esc(x)+'</td><td class="num">'+RANKNAME[c.skills[x].lvl]+" · "+RANKNOTE[c.skills[x].lvl]+"</td></tr>").join(""):"<tr><td>none</td></tr>")+"</table>"+
+      "<h2>Menaces</h2><table><tr><th>Menace</th><th>Track</th><th>Level</th></tr>"+
+        MENACES.map(m=>"<tr><td>"+m+"</td><td>"+boxRow(c.menaces[m].boxes,0)+'</td><td class="num">'+(S.menaceLevel[m]||0)+" / "+c.menaces[m].over+"</td></tr>").join("")+"</table>"+
+      "<h2>Areas of expertise</h2><table>"+(c.aoe.length?c.aoe.map(x=>"<tr><td>"+esc(x.name)+'</td><td class="num">'+AOENAME[x.level]+"</td></tr>").join(""):"<tr><td>none</td></tr>")+"</table>"+
+    "</div><div>"+
+      "<h2>Obsessions · "+c.obsTotal+"/"+c.obsCap+", overcome at "+c.obsOver+"</h2>"+
+      c.obs.map(o=>'<div class="p-item"><b>'+esc(o.name)+" "+o.strength+"</b> &nbsp;"+boxRow(3,S.charges[o.name]||0)+
+        "<br>"+esc(o.detail||"")+' <span class="p-src">'+esc(o.src)+"</span></div>").join("")+
+    "</div></div>"+
+    '<div class="p-block p-flow"><h2>Kit</h2><div class="p-kit">'+(kit.length?kit.map(r=>'<div class="p-item"><span class="p-src">'+esc(r.slot.label)+"</span><br><b>"+esc(r.val)+"</b>"+
+        (r.item?" — "+esc(r.item.c)+(r.item.u?", "+r.item.u+" use"+(r.item.u>1?"s":""):""):"")+
+        (r.item&&r.item.s.length?"<ul>"+r.item.s.map(t=>"<li>"+esc(t)+"</li>").join("")+"</ul>":"")+"</div>").join(""):"<p>nothing chosen</p>")+
+      (S.connection?'<div class="p-item"><span class="p-src">Connection</span><br>'+esc(S.connection)+"</div>":"")+
+    "</div></div>"+
+    '<div class="p-block p-flow"><h2>Traits &amp; abilities</h2>'+
+      (function(){const g=[];traitList().forEach(t=>{const l=g[g.length-1]; if(l&&l.src===t.src) l.items.push(t.text); else g.push({src:t.src,items:[t.text]});});
+        return g.map(x=>'<div class="p-item"><span class="p-src">'+esc(x.src)+"</span><ul>"+x.items.map(i=>"<li>"+esc(i)+"</li>").join("")+"</ul></div>").join("");})()+
+    "</div>"+
+    (specials.length?'<div class="p-block"><h2>Special skills</h2>'+specials.map(x=>{const i=SPECIAL_INFO[x];
+      return '<div class="p-item"><b>'+esc(x)+" — "+RANKNAME[c.skills[x].lvl]+"</b><br>"+esc(i.what)+
+        "<br><i>Attribute.</i> "+esc(i.attr)+"<br><i>Cost &amp; limits.</i> "+esc(i.limit)+"</div>";}).join("")+"</div>":"")+
+    '<div class="p-block"><h2>Grounding</h2><table>'+
+      (S.mundanity?"<tr><th>Mundanity</th><td>"+esc(S.mundanity)+"</td></tr>":"")+
+      (S.goal?"<tr><th>Goal</th><td>"+esc(S.goal)+"</td></tr>":"")+
+      S.bonds.filter(b=>b.name).map(b=>"<tr><th>"+esc(b.bond||"Bond")+"</th><td>"+esc(b.name)+"</td></tr>").join("")+
+      "</table></div>"+
+    '<p class="p-rule"><b>Challenge roll.</b> Attribute + skill (Trained +1d6 · Adept +1d6 or a guaranteed 1 hit · Master +1 hit) + 1d6 favourable circumstances + 1d6 useful asset. Every 5 or 6 is a hit. No dice: roll 2d6, take the worse. A formidable challenge deletes your first hit. ' +
+      '<b>Menaces.</b> Fill the track, erase it, raise the level, take a complication. <b>Expertise.</b> 2 Nightmares buys 1 / 2 / 3 questions at Casual / Veteran / Esoteric. <b>Coming down.</b> Only an intermission helps: tending to your affairs rolls 1 die + 1 per stable mundanity (−1 if an obsession is at 5+, −1 if you hold three or more, +1 if no menace is at level 3+, +1 if nothing is frayed); a success takes one level off a menace or 1 strength off an obsession, two choices on a triumphant success.</p>';
+}
+
+/* ============================ SAVE · LOAD · EXPORT ============================ */
+const SAVE_KEYS=["name","look","nature","origin","profession","profChoice","profession2","profChoice2","disposition",
+  "dispOptIn","association","twist","ambition","goal","mundanity","connection","attr2","attr0","bumps","aoe",
+  "extraObs","bonds","menaceLevel","charges","gear","step"];
+function serialize(){
+  const out={};
+  SAVE_KEYS.forEach(k=>{ if(S[k]!==undefined) out[k]=S[k]; });
+  return JSON.stringify({format:"fallen-london-character-ledger",version:1,character:out},null,2);
+}
+function applyData(txt){
+  let d;
+  try{ d=JSON.parse(txt); }catch(err){ toast("That is not valid JSON"); return false; }
+  const ch=d&&d.character?d.character:d;
+  if(!ch||typeof ch!=="object"){ toast("No character found in that file"); return false; }
+  SAVE_KEYS.forEach(k=>{ if(ch[k]!==undefined) S[k]=ch[k]; });
+  S.gear=Object.assign({originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},S.gear||{});
+  S.bumps=S.bumps||{}; S.aoe=S.aoe||[]; S.extraObs=S.extraObs||[]; S.bonds=S.bonds||[];
+  S.menaceLevel=S.menaceLevel||{}; S.charges=S.charges||{};
+  S.slot=S.slot||"originEq"; S.gearQuery=""; S.gearCat="";
+  S.step=Math.min(Math.max(0,Number(S.step)||0),STEPS.length-1);
+  rerender(); toast("Ledger loaded");
+  return true;
+}
+const slug = () => (S.name||"unnamed-party").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
+const embedded = () => { try{ return window.self!==window.top; }catch(e){ return true; } };
+function openModal(mode){
+  const m=$("#modal");
+  $("#modal-title").textContent = mode==="save" ? "Your ledger, as text" : "Load a ledger";
+  $("#modal-note").textContent = mode==="save"
+    ? "This page cannot write to your disk from here, so copy the text below and keep it in a .json file. Open the copy saved in your own folder and “Save file” will download it directly."
+    : "Choose a saved .json file, or paste one below and load it.";
+  $("#modal-text").value = mode==="save" ? serialize() : "";
+  $("#modal-apply").hidden = (mode==="save");
+  $("#modal-file").hidden = (mode==="save");
+  $("#modal-selectall").hidden = (mode!=="save");
+  m.hidden=false;
+  $("#modal-text").focus();
+  if(mode==="save") $("#modal-text").select();
+}
+let DOWNLOADS=null;
+if(window.claude&&typeof window.claude.use==="function"){
+  window.claude.use("downloads").then(d=>{ DOWNLOADS=d; }).catch(()=>{});
+}
+function saveLocally(txt){
+  try{
+    const blob=new Blob([txt],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url; a.download=slug()+"-ledger.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    toast("Saved to your downloads");
+    return true;
+  }catch(err){ return false; }
+}
+async function saveFile(){
+  const txt=serialize();
+  if(DOWNLOADS){
+    try{
+      await DOWNLOADS.save({filename:slug()+"-ledger.json",data:txt});
+      toast("Ledger saved");
+    }catch(err){
+      const code=err&&err.code;
+      if(code==="declined") toast("Save cancelled");
+      else if(code==="rate_limited") toast("A save prompt is already open");
+      else if(!embedded()&&saveLocally(txt)) { /* saved the ordinary way */ }
+      else openModal("save");
+    }
+    return;
+  }
+  if(!embedded()&&saveLocally(txt)) return;
+  openModal("save");
+}
+function exportPDF(){
+  renderPrint();
+  toast("Choose “Save as PDF” in the print dialog");
+  setTimeout(()=>{ try{ window.print(); }catch(err){ toast("Printing is blocked here — press Ctrl/Cmd+P"); } },120);
+}
+window.addEventListener("beforeprint",renderPrint);
+
+/* ============================ EVENTS ============================ */
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+function rerender(){ renderStep(); renderSheet(); }
+
+document.addEventListener("click",e=>{
+  const stepBtn=e.target.closest("[data-step]");
+  if(stepBtn){ S.step=Number(stepBtn.dataset.step); rerender(); window.scrollTo({top:0,behavior:"smooth"}); return; }
+
+  const card=e.target.closest("[data-pick]");
+  if(card){
+    const key=STEPS[S.step].key, val=card.dataset.pick;
+    if(S[key]===val){ S[key]=null; } else { S[key]=val; }
+    if(key==="profession"){ S.profChoice=null; S.gear.profEq=""; S.gear.profRes="";
+      const p=pro(); if(p&&p.forcedTwist) S.twist=p.forcedTwist; }
+    if(key==="origin") S.gear.originEq="";
+    if(key==="association"){ S.gear.assocRes=""; }
+    if(key==="disposition"){ S.dispOptIn=false; delete S.bumps.obsDetail; }
+    if(key==="twist"){ S.profession2=null; S.profChoice2=null;
+      const t=twi(); if(t){ (t.bumps||[]).forEach(b=>{delete S.bumps[b.key]; delete S.bumps[b.key+"_t"];}); if(t.choice) delete S.bumps[t.choice.key]; } }
+    if(key==="nature"){ const n=nat(); if(n&&n.bumps) n.bumps.forEach(b=>delete S.bumps[b.key]); }
+    rerender(); return;
+  }
+
+  const clr=e.target.closest("[data-clear]");
+  if(clr){ S.gear[clr.dataset.clear]=""; rerender(); return; }
+  const sl=e.target.closest("[data-slot]");
+  if(sl){ S.slot=sl.dataset.slot; S.gearCat=""; rerender(); return; }
+  const gc=e.target.closest("[data-gearcat]");
+  if(gc){ S.gearCat=gc.dataset.gearcat; rerender(); return; }
+  const pg=e.target.closest("[data-pickgear]");
+  if(pg){ S.gear[S.slot]=pg.dataset.pickgear; rerender(); return; }
+  const chip=e.target.closest("[data-chip]");
+  if(chip){
+    const tgt=chip.dataset.chip, val=chip.dataset.val;
+    if(tgt==="__aoe"){ if(!S.aoe.some(x=>x.name===val)) S.aoe.push({name:val,level:1}); }
+    else if(tgt==="connection") S.connection=val;
+    else S.gear[tgt]=val;
+    rerender(); return;
+  }
+
+  const ml=e.target.closest("[data-mlvl]");
+  if(ml){
+    const m=ml.dataset.mlvl, c=compute(), max=c.menaces[m].over;
+    const cur=S.menaceLevel[m]||0;
+    S.menaceLevel[m]=Math.max(0,Math.min(max,cur+Number(ml.dataset.d)));
+    renderSheet(); return;
+  }
+  const cg=e.target.closest("[data-chg]");
+  if(cg){
+    const k=cg.dataset.chg, i=Number(cg.dataset.i), cur=S.charges[k]||0;
+    S.charges[k] = (cur===i+1)?i:(i+1);
+    renderSheet(); return;
+  }
+  const act=e.target.closest("[data-act]");
+  if(act){
+    const a=act.dataset.act;
+    if(a==="add-obs"){
+      const o=S.newObs||{};
+      if(o.name){ S.extraObs.push({name:o.name,detail:o.detail||"",strength:Number(o.strength)||3}); S.newObs=null; }
+    }
+    if(a==="del-obs") S.extraObs.splice(Number(act.dataset.i),1);
+    if(a==="load-cat"){ $("#cat-input").click(); return; }
+    if(a==="add-bond") S.bonds.push({name:"",bond:BONDS[0]});
+    if(a==="del-bond") S.bonds.splice(Number(act.dataset.i),1);
+    if(a==="add-aoe"){ const v=(S.newAoE||"").trim(); if(v&&!S.aoe.some(x=>x.name===v)){ S.aoe.push({name:v,level:1}); S.newAoE=""; } }
+    if(a==="aoe-up"){ const x=S.aoe.find(y=>y.name===act.dataset.name); if(x&&x.level<3) x.level++; }
+    if(a==="aoe-down"){ const x=S.aoe.find(y=>y.name===act.dataset.name); if(x&&x.level>1) x.level--; }
+    if(a==="aoe-del"){ S.aoe=S.aoe.filter(y=>y.name!==act.dataset.name); }
+    rerender(); return;
+  }
+});
+
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.bump!==undefined){ S.bumps[t.dataset.bump]=t.value; if(t.dataset.bump.endsWith("_t")===false) S.bumps[t.dataset.bump+"_t"]=S.bumps[t.dataset.bump+"_t"]||""; rerender(); return; }
+  if(t.dataset.profChoice==="1"){ S.profChoice=t.value||null; rerender(); return; }
+  if(t.dataset.profChoice==="2"){ S.profChoice2=t.value||null; rerender(); return; }
+  if(t.dataset.prof2!==undefined){ S.profession2=t.value||null; S.profChoice2=null; rerender(); return; }
+  if(t.dataset.attr==="2"){ S.attr2=t.value||null; if(S.attr0===S.attr2) S.attr0=null; rerender(); return; }
+  if(t.dataset.attr==="0"){ S.attr0=t.value||null; if(S.attr0===S.attr2) S.attr2=null; rerender(); return; }
+  if(t.dataset.optin!==undefined){ S.dispOptIn=t.checked; rerender(); return; }
+  if(t.dataset.bondkind!==undefined){ S.bonds[Number(t.dataset.bondkind)].bond=t.value; renderSheet(); return; }
+  if(t.dataset.extra==="strength"){ S.newObs=Object.assign({},S.newObs,{strength:t.value}); return; }
+});
+
+document.addEventListener("input",e=>{
+  const t=e.target, k=t.dataset.text;
+  if(k){
+    if(k in S.gear) S.gear[k]=t.value;
+    else if(k==="obsDetail") S.bumps.obsDetail=t.value;
+    else S[k]=t.value;
+    renderSheet(); return;
+  }
+  if(t.dataset.bondname!==undefined){ S.bonds[Number(t.dataset.bondname)].name=t.value; renderSheet(); return; }
+  if(t.dataset.gearq!==undefined){ S.gearQuery=t.value; renderGearList(); return; }
+  if(t.dataset.extra==="name"||t.dataset.extra==="detail"){ S.newObs=Object.assign({},S.newObs,{[t.dataset.extra]:t.value}); return; }
+  if(t.dataset.extra==="aoe"){ S.newAoE=t.value; return; }
+});
+
+$("#btn-save").addEventListener("click",saveFile);
+$("#btn-pdf").addEventListener("click",exportPDF);
+$("#btn-load").addEventListener("click",()=>openModal("load"));
+$("#modal-close").addEventListener("click",()=>{ $("#modal").hidden=true; });
+$("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") $("#modal").hidden=true; });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") $("#modal").hidden=true; });
+$("#modal-selectall").addEventListener("click",()=>{ $("#modal-text").select(); });
+$("#modal-apply").addEventListener("click",()=>{ if(applyData($("#modal-text").value)) $("#modal").hidden=true; });
+$("#modal-file").addEventListener("click",()=>$("#file-input").click());
+$("#cat-input").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>loadCatalogue(String(r.result),f.name);
+  r.onerror=()=>toast("That file could not be read");
+  r.readAsText(f); e.target.value="";
+});
+$("#file-input").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ if(applyData(String(r.result))) $("#modal").hidden=true; };
+  r.onerror=()=>toast("That file could not be read");
+  r.readAsText(f);
+  e.target.value="";
+});
+$("#btn-reset").addEventListener("click",()=>{
+  Object.assign(S,{name:"",look:"",nature:null,origin:null,profession:null,profChoice:null,profession2:null,profChoice2:null,
+    disposition:null,dispOptIn:false,association:null,twist:null,ambition:"",goal:"",mundanity:"",connection:"",
+    attr2:null,attr0:null,bumps:{},aoe:[],extraObs:[],bonds:[],newObs:null,newAoE:"",menaceLevel:{},charges:{},slot:"originEq",gearQuery:"",gearCat:"",
+    gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},step:0});
+  rerender(); toast("Ledger cleared");
+});
+$("#btn-example").addEventListener("click",()=>{
+  Object.assign(S,{
+    name:"The Glistening Hunter", look:"Reddish, over-glistening, in heavy dull working clothes; traps, a revolver, and bottles of poison.",
+    nature:"Rubbery Man", origin:"Watchmaker's Hill", profession:"Rat-Catcher", profChoice:"Force",
+    profession2:null, profChoice2:null, disposition:"Exacting", dispOptIn:false, association:"Rubbery Men", twist:"Inappropriate Pet",
+    ambition:"to perfect the art of extermination, because a flawless hunter is the only proof my hands are worth anything",
+    goal:"see Darling accepted at a respectable kennel show", mundanity:"Job — vermin contracts along Bugsby's Marshes",
+    connection:"A Fluke-touched amber-broker on Flute Street who owes me a favour",
+    attr2:"Watchful", attr0:"Persuasive", bumps:{obsDetail:"every extermination, done cleanly and without a mess"},
+    aoe:[{name:"Pests",level:1},{name:"Flute Street",level:1}], extraObs:[], bonds:[{name:"Alisdair, the Correspondent scholar",bond:"Allies"},{name:"Dr Quigley, the Rattus faber surgeon",bond:"Old Wounds"},{name:"the Razor Artiste",bond:"Partnership"}], newObs:null, newAoE:"", menaceLevel:{Nightmares:1}, charges:{"Perfection":1},
+    gear:{originEq:"ratwork hunting rifle",profEq:"Retrofitted Ratting Piece",profRes:"Dab of Discriminating Aconite",assocRes:"nodule of deep amber",extraEq:"Cured Jillyfleur Cloak",extraRes:"Foxfire Candle Stub"},
+    step:0
+  });
+  rerender(); toast("Example loaded — the book's own Rubbery rat-catcher");
+});
+
+renderStep(); renderSheet();
+</script>
+
+</body>
+</html>
