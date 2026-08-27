@@ -55,22 +55,18 @@ a.btn:hover{color:var(--brass-bright)}
 .btn-primary{background:var(--brass-soft); border-color:var(--brass); color:var(--brass-bright)}
 .btn-primary:hover{background:rgba(198,138,58,.22)}
 .mast-more{position:relative}
-.mast-more summary{list-style:none}
-.mast-more summary::-webkit-details-marker{display:none}
+.mast-more-toggle{display:none}
 .mast-more-menu{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
-@media (min-width:641px){
-  .mast-more summary{display:none}
-  .mast-more:not([open]) .mast-more-menu{display:flex}
-}
 @media (max-width:640px){
   .btn{min-height:2.75rem; display:inline-flex; align-items:center; justify-content:center}
-  .mast-more:not([open]) .mast-more-menu{display:none}
-  .mast-more[open] .mast-more-menu{
-    position:absolute; right:0; top:calc(100% + .4rem); z-index:50;
+  .mast-more-toggle{display:inline-flex}
+  .mast-more-menu{display:none}
+  .mast-more-menu.open{
+    display:flex; position:absolute; right:0; top:calc(100% + .4rem); z-index:50;
     flex-direction:column; align-items:stretch; background:var(--surface); border:1px solid var(--line);
     border-radius:3px; padding:.5rem; min-width:9rem; box-shadow:0 8px 24px rgba(0,0,0,.35);
   }
-  .mast-more[open] .mast-more-menu .btn{justify-content:flex-start}
+  .mast-more-menu.open .btn{justify-content:flex-start}
 }
 
 /* ---------- shell ---------- */
@@ -356,16 +352,16 @@ textarea{resize:vertical; min-height:3.4rem}
     </div>
     <div class="mast-actions">
       <a class="btn" href="index.html">Character ledger →</a>
-      <details class="mast-more">
-        <summary class="btn" aria-label="More actions">⋯</summary>
-        <div class="mast-more-menu">
+      <div class="mast-more">
+        <button class="btn mast-more-toggle" id="mast-more-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="More actions">⋯</button>
+        <div class="mast-more-menu" id="mast-more-menu">
           <button class="btn" id="btn-example" type="button">Sample</button>
           <button class="btn" id="btn-reset" type="button">Clear</button>
           <button class="btn" id="btn-load" type="button">Load</button>
           <button class="btn" id="btn-save" type="button">Save</button>
           <button class="btn" id="btn-pdf" type="button">Print</button>
         </div>
-      </details>
+      </div>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
     </div>
   </div>
@@ -885,10 +881,21 @@ $("#btn-pdf").addEventListener("click",exportPDF);
 $("#btn-load").addEventListener("click",()=>openModal("load"));
 $("#modal-close").addEventListener("click",()=>{ $("#modal").hidden=true; });
 $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") $("#modal").hidden=true; });
+$("#mast-more-btn").addEventListener("click",e=>{
+  e.stopPropagation();
+  const open=$("#mast-more-menu").classList.toggle("open");
+  $("#mast-more-btn").setAttribute("aria-expanded",open);
+});
+document.addEventListener("click",e=>{
+  const menu=$("#mast-more-menu");
+  if(menu.classList.contains("open")&&!menu.contains(e.target)&&e.target.id!=="mast-more-btn"){
+    menu.classList.remove("open"); $("#mast-more-btn").setAttribute("aria-expanded","false");
+  }
+});
 $("#checks-btn").addEventListener("click",()=>{ $("#checks-modal").hidden=false; });
 $("#checks-modal-close").addEventListener("click",()=>{ $("#checks-modal").hidden=true; });
 $("#checks-modal").addEventListener("click",e=>{ if(e.target.id==="checks-modal") $("#checks-modal").hidden=true; });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ $("#modal").hidden=true; $("#checks-modal").hidden=true; } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ $("#modal").hidden=true; $("#checks-modal").hidden=true; $("#mast-more-menu").classList.remove("open"); $("#mast-more-btn").setAttribute("aria-expanded","false"); } });
 $("#modal-selectall").addEventListener("click",()=>$("#modal-text").select());
 $("#modal-apply").addEventListener("click",()=>{ if(applyData($("#modal-text").value)) $("#modal").hidden=true; });
 $("#modal-file").addEventListener("click",()=>$("#file-input").click());
