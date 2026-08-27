@@ -1,19 +1,20 @@
 # Fallen London Character Ledger
 
 A character-creation tool for *Fallen London: the Roleplaying Game*, built from the
-corebook preview (chapters 2, 3, 4 and 6). One self-contained HTML file — no build
+corebook preview (chapters 2, 3, 4 and 6). Two self-contained HTML pages — no build
 step, no dependencies, nothing to install.
 
 ## What's here
 
 | File | What it is |
 |---|---|
-| `index.html` | The ledger itself. Open it in any browser, or serve it from GitHub Pages. |
+| `index.html` | The character ledger. Open it in any browser, or serve it from GitHub Pages. |
+| `concern.html` | The concern ledger: grand ambition, principal, starting assets, benefits, members, contract. Build the concern first — its ambition and principal shape every character. |
 | `kit-catalogue.md` | The Chapter 6 equipment and resource catalogue in editable form. The ledger has a **Load catalogue…** button on the Kit step that reads this file, so you can correct an entry and see it immediately. |
 
 ## Publishing it on GitHub Pages
 
-1. Create a repository on GitHub and upload both files to the root (drag and drop
+1. Create a repository on GitHub and upload the files to the root (drag and drop
    works: **Add file → Upload files**).
 2. **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
    branch `main`, folder `/ (root)`, then **Save**.

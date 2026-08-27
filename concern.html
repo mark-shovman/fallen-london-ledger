@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fallen London Concern Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,300;0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --ground:#0D1014; --ground-2:#111519; --surface:#161B22; --surface-2:#1D242D;
+  --line:#2A323D; --line-soft:#212832;
+  --ink:#E9E5DA; --ink-muted:#9AA4B2; --ink-dim:#6C7684;
+  --brass:#C68A3A; --brass-bright:#E0A64C; --brass-soft:rgba(198,138,58,.13);
+  --violant:#8C6FD1;
+  --wounds:#C0564A; --nightmares:#8C6FD1; --scandal:#D6BC57; --suspicion:#5D96BC;
+  --ok:#5E9E7A; --warn:#D2A03F; --bad:#C0564A;
+  --display:"Bodoni Moda",Georgia,"Times New Roman",serif;
+  --body:"Spectral",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --step:clamp(.85rem,.2vw + .8rem,.95rem);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--body); font-size:var(--step); line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display); font-weight:600; text-wrap:balance; margin:0; line-height:1.15}
+p{margin:0 0 .7em}
+p:last-child{margin-bottom:0}
+a{color:var(--brass-bright)}
+button{font-family:var(--mono); color:inherit}
+:focus-visible{outline:2px solid var(--brass-bright); outline-offset:2px}
+.lbl{font-family:var(--mono); font-size:.63rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim)}
+
+/* ---------- masthead ---------- */
+.masthead{
+  position:sticky; top:0; z-index:40; background:linear-gradient(180deg,var(--ground-2) 72%,rgba(13,16,20,.86));
+  border-bottom:1px solid var(--line); backdrop-filter:blur(6px);
+}
+.masthead-in{max-width:1500px; margin:0 auto; padding:.7rem clamp(.8rem,2vw,1.6rem); display:flex; gap:1rem; align-items:center; flex-wrap:wrap}
+.wordmark{display:flex; flex-direction:column; gap:.1rem; margin-right:auto}
+.wordmark h1{font-size:1.32rem; letter-spacing:.01em}
+.wordmark .lbl{color:var(--ink-dim)}
+.mast-actions{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+.btn{
+  font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; padding:.5rem .85rem;
+  background:transparent; border:1px solid var(--line); border-radius:2px; cursor:pointer; transition:.15s;
+}
+.btn:hover{border-color:var(--brass); color:var(--brass-bright)}
+.btn-primary{background:var(--brass-soft); border-color:var(--brass); color:var(--brass-bright)}
+.btn-primary:hover{background:rgba(198,138,58,.22)}
+
+/* ---------- shell ---------- */
+.shell{max-width:1500px; margin:0 auto; padding:clamp(.9rem,2vw,1.6rem); display:grid; gap:clamp(.9rem,1.6vw,1.5rem);
+  grid-template-columns:minmax(0,15rem) minmax(0,1fr) minmax(0,25rem); align-items:start}
+@media (max-width:1240px){ .shell{grid-template-columns:minmax(0,1fr) minmax(0,23rem)} .rail{grid-column:1/-1} }
+@media (max-width:900px){ .shell{grid-template-columns:minmax(0,1fr)} }
+
+/* ---------- rail ---------- */
+.rail{position:sticky; top:4.6rem}
+@media (max-width:1240px){ .rail{position:static} }
+.rail ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
+@media (max-width:1240px){ .rail ol{flex-direction:row; flex-wrap:wrap} }
+.step-btn{
+  width:100%; display:flex; gap:.6rem; align-items:baseline; text-align:left; cursor:pointer;
+  background:transparent; border:1px solid transparent; border-left:2px solid var(--line-soft);
+  padding:.5rem .6rem; border-radius:0; transition:.15s; font-family:var(--body); font-size:.9rem;
+}
+.step-btn:hover{background:var(--surface); border-left-color:var(--ink-dim)}
+.step-btn[aria-current="true"]{background:var(--surface); border-left-color:var(--brass); color:var(--brass-bright)}
+.step-btn .num{font-family:var(--mono); font-size:.62rem; color:var(--ink-dim); letter-spacing:.08em; min-width:1.9em}
+.step-btn[aria-current="true"] .num{color:var(--brass)}
+.step-btn .pick{display:block; font-size:.68rem; color:var(--ink-muted); font-family:var(--mono); margin-top:.15rem}
+.step-btn.done .num::after{content:" ✓"; color:var(--ok)}
+
+/* ---------- main column ---------- */
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:3px}
+.panel-hd{padding:1rem 1.1rem .85rem; border-bottom:1px solid var(--line-soft)}
+.panel-hd h2{font-size:1.5rem}
+.panel-hd .eyebrow{display:block; margin-bottom:.35rem}
+.panel-hd p{color:var(--ink-muted); margin-top:.5rem; max-width:62ch; font-size:.88rem}
+.panel-bd{padding:1rem 1.1rem 1.2rem}
+
+.cards{display:grid; gap:.7rem; grid-template-columns:repeat(auto-fill,minmax(14rem,1fr))}
+.card{
+  position:relative; text-align:left; cursor:pointer; background:var(--ground-2);
+  border:1px solid var(--line-soft); border-radius:3px; padding:.75rem .85rem; transition:.15s;
+  font-family:var(--body); font-size:.85rem; color:var(--ink); display:flex; flex-direction:column; gap:.4rem;
+}
+.card:hover{border-color:var(--ink-dim); background:var(--surface-2)}
+.card[aria-pressed="true"]{border-color:var(--brass); background:linear-gradient(180deg,var(--brass-soft),transparent 70%)}
+.card h3{font-size:1.02rem; font-family:var(--display)}
+.card .mech{font-family:var(--mono); font-size:.67rem; line-height:1.5; color:var(--ink-muted); display:flex; flex-direction:column; gap:.15rem}
+.card .mech b{color:var(--ink); font-weight:500}
+.card .flavour{color:var(--ink-muted); font-size:.8rem; font-style:italic}
+.card .tag{position:absolute; top:.6rem; right:.7rem; font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--violant)}
+.card.taken{opacity:.45}
+
+.detail{margin-top:1rem; border-top:1px solid var(--line-soft); padding-top:1rem; display:flex; flex-direction:column; gap:.9rem}
+.field{display:flex; flex-direction:column; gap:.3rem}
+.field .hint{font-size:.78rem; color:var(--ink-dim)}
+input[type=text],textarea,select{
+  font-family:var(--body); font-size:.87rem; color:var(--ink); background:var(--ground);
+  border:1px solid var(--line); border-radius:2px; padding:.45rem .55rem; width:100%;
+}
+select{font-family:var(--mono); font-size:.75rem}
+textarea{resize:vertical; min-height:3.4rem}
+.chips{display:flex; flex-wrap:wrap; gap:.35rem}
+.chip{
+  font-family:var(--mono); font-size:.66rem; padding:.28rem .5rem; border:1px dashed var(--line);
+  background:transparent; border-radius:2px; cursor:pointer; color:var(--ink-muted);
+}
+.chip:hover{border-style:solid; border-color:var(--brass); color:var(--brass-bright)}
+.row{display:flex; gap:.6rem; flex-wrap:wrap; align-items:flex-end}
+.row>*{flex:1 1 12rem}
+
+/* attributes */
+.attrs{display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:.6rem}
+.attr{border:1px solid var(--line-soft); background:var(--ground-2); border-radius:3px; padding:.6rem .7rem; display:flex; flex-direction:column; gap:.45rem}
+.attr .val{font-family:var(--mono); font-size:1.6rem; line-height:1; font-variant-numeric:tabular-nums}
+.stepper{display:flex; gap:.3rem; align-items:center}
+.stepper button{width:1.7rem; height:1.7rem; border:1px solid var(--line); background:transparent; border-radius:2px; cursor:pointer; font-size:.9rem; line-height:1}
+.stepper button:hover:not(:disabled){border-color:var(--brass); color:var(--brass-bright)}
+.stepper button:disabled{opacity:.3; cursor:not-allowed}
+
+/* ---------- sheet ---------- */
+.sheet{position:sticky; top:4.6rem; background:var(--surface); border:1px solid var(--line); border-radius:3px; max-height:calc(100vh - 6rem); overflow:auto}
+@media (max-width:900px){ .sheet{position:static; max-height:none} }
+.sheet-hd{padding:.9rem 1rem .8rem; border-bottom:1px solid var(--line-soft); background:linear-gradient(180deg,var(--surface-2),var(--surface))}
+.sheet-hd h2{font-size:1.2rem; font-style:italic}
+.sheet-hd .sub{font-family:var(--mono); font-size:.65rem; color:var(--ink-muted); margin-top:.25rem; letter-spacing:.04em}
+.sect{padding:.8rem 1rem; border-bottom:1px solid var(--line-soft)}
+.sect:last-child{border-bottom:0}
+.sect>.lbl{display:block; margin-bottom:.5rem}
+.kv{display:flex; justify-content:space-between; gap:.6rem; font-size:.82rem; padding:.16rem 0}
+.kv .k{color:var(--ink-muted)}
+.kv .v{font-family:var(--mono); font-size:.75rem; text-align:right}
+
+.menace{display:flex; align-items:center; gap:.55rem; padding:.28rem 0}
+.menace .name{font-family:var(--mono); font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; width:6.2em; color:var(--ink-muted)}
+.boxes{display:flex; gap:3px}
+.boxes i{width:.75rem; height:.75rem; border:1px solid currentColor; border-radius:1px; display:block}
+.menace .ov{margin-left:auto; font-family:var(--mono); font-size:.68rem; color:var(--ink-muted); font-variant-numeric:tabular-nums}
+.m-wounds{color:var(--wounds)} .m-nightmares{color:var(--nightmares)}
+.m-scandal{color:var(--scandal)} .m-suspicion{color:var(--suspicion)}
+
+.skillgrid{display:flex; flex-direction:column; gap:.5rem}
+.skillgroup .lbl{color:var(--ink-dim); display:block; margin-bottom:.2rem}
+.skillrow{display:flex; align-items:baseline; gap:.5rem; font-size:.8rem; padding:.1rem 0}
+.skillrow .sname{flex:1}
+.skillrow.has .sname{color:var(--ink)}
+.skillrow:not(.has) .sname{color:var(--ink-dim)}
+.rank{font-family:var(--mono); font-size:.65rem; letter-spacing:.06em; text-transform:uppercase; padding:.1rem .35rem; border:1px solid var(--line); border-radius:2px; color:var(--ink-muted)}
+.rank.r1{border-color:rgba(198,138,58,.4); color:var(--brass)}
+.rank.r2{border-color:var(--brass); color:var(--brass-bright); background:var(--brass-soft)}
+.rank.r3{border-color:var(--violant); color:var(--violant); background:rgba(140,111,209,.12)}
+.rank-note{font-family:var(--mono); font-size:.6rem; color:var(--ink-dim)}
+
+.obs{display:flex; flex-direction:column; gap:.35rem}
+.obsrow{display:flex; gap:.5rem; align-items:baseline; font-size:.82rem; border-left:2px solid var(--violant); padding-left:.5rem}
+.obsrow .os{font-family:var(--mono); font-size:.7rem; color:var(--violant)}
+.obsrow .od{color:var(--ink-muted); font-size:.76rem}
+.meter{height:5px; background:var(--ground); border:1px solid var(--line); border-radius:2px; overflow:hidden; margin-top:.45rem}
+.meter i{display:block; height:100%; background:var(--violant)}
+.meter.over i{background:var(--bad)}
+
+.notice{display:flex; gap:.5rem; font-size:.78rem; padding:.4rem .5rem; border-radius:2px; border:1px solid var(--line); background:var(--ground-2); align-items:flex-start}
+.notice+.notice{margin-top:.35rem}
+.notice .dot{width:.45rem; height:.45rem; border-radius:50%; margin-top:.42rem; flex:none}
+.notice.err{border-color:rgba(192,86,74,.5)} .notice.err .dot{background:var(--bad)}
+.notice.warn{border-color:rgba(210,160,63,.45)} .notice.warn .dot{background:var(--warn)}
+.notice.ok{border-color:rgba(94,158,122,.4)} .notice.ok .dot{background:var(--ok)}
+
+.bonds{display:flex; flex-direction:column; gap:.4rem; margin-top:.4rem}
+.bondrow{display:flex; gap:.4rem; align-items:center}
+.bondrow input{flex:1 1 12rem}
+.bondrow select{flex:0 0 11rem}
+.bondrow .chip{flex:0 0 auto}
+.slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(13rem,1fr)); gap:.6rem}
+.slot{position:relative; padding-right:3.2rem; text-align:left; display:flex; flex-direction:column; gap:.25rem; cursor:pointer;
+  background:var(--ground-2); border:1px solid var(--line-soft); border-left:2px solid var(--line); border-radius:2px;
+  padding:.6rem .7rem; font-family:var(--body); color:var(--ink); transition:.15s}
+.slot .lbl{padding-right:.2rem}
+.slot:hover{border-color:var(--ink-dim)}
+.slot.active{border-left-color:var(--brass); background:var(--surface-2)}
+.slot.full .sval{color:var(--ink)}
+.slot .sval{font-size:.85rem; color:var(--ink-dim)}
+.slot .sclear{position:absolute; top:.55rem; right:.6rem; font-family:var(--mono); font-size:.58rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-dim); cursor:pointer}
+.slot .sclear:hover{color:var(--bad)}
+.chip.on{border-style:solid; border-color:var(--brass); color:var(--brass-bright); background:var(--brass-soft)}
+.gearlist{display:grid; grid-template-columns:repeat(auto-fill,minmax(16rem,1fr)); gap:.6rem; margin-top:.6rem}
+.gcard{border:1px solid var(--line-soft); background:var(--ground-2); border-radius:2px; padding:.6rem .7rem}
+.gcard.chosen{border-color:var(--brass); background:linear-gradient(180deg,var(--brass-soft),transparent 70%)}
+.gcard .ghd{display:flex; flex-direction:column; gap:.1rem}
+.gname{background:none; border:0; padding:0; text-align:left; font-family:var(--display); font-size:1rem; color:var(--ink); cursor:pointer}
+.gname:hover{color:var(--brass-bright)}
+.gmeta{font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim)}
+.gtag{font-size:.79rem; color:var(--ink-muted); font-style:italic; margin:.3rem 0 .1rem}
+.gcard ul,.specialref ul{margin:.25rem 0 0; padding-left:1.05rem}
+.gcard li,.specialref li{font-size:.77rem; color:var(--ink-muted); margin-bottom:.15rem}
+.track{margin-left:auto; display:flex; align-items:center; gap:.2rem; font-family:var(--mono); font-size:.7rem; font-variant-numeric:tabular-nums}
+.track .tval{min-width:1.2em; text-align:right; color:var(--ink)}
+.track .tsep,.track .tmax{color:var(--ink-dim)}
+.track.out .tval{color:var(--bad); font-weight:600}
+.tbtn{width:1.05rem; height:1.05rem; line-height:1; padding:0; background:transparent; border:1px solid var(--line); border-radius:1px; cursor:pointer; color:var(--ink-muted); font-size:.7rem}
+.tbtn:hover{border-color:currentColor}
+.charges{display:inline-flex; gap:3px; margin-left:.45rem; vertical-align:middle}
+.chg{width:.62rem; height:.62rem; padding:0; border:1px solid var(--violant); background:transparent; border-radius:1px; cursor:pointer}
+.chg.on{background:var(--violant)}
+.traits{display:flex; flex-direction:column; gap:.4rem}
+.trait{font-size:.78rem; color:var(--ink-muted); display:flex; flex-direction:column; gap:.22rem}
+.trait .tsrc{font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--brass)}
+.sdet{margin:.15rem 0 .5rem}
+.sdet summary{font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); cursor:pointer}
+.sdet summary:hover{color:var(--brass)}
+.sdet p{font-size:.76rem; color:var(--ink-muted); margin:.35rem 0 0}
+.sdet b{color:var(--ink); font-weight:600}
+.specialref{display:flex; flex-direction:column; gap:.5rem; border:1px solid var(--line-soft); border-left:2px solid var(--brass); background:var(--ground-2); padding:.7rem .8rem; border-radius:2px}
+.specialref h4{font-size:1rem; font-family:var(--display)}
+.specialref p{font-size:.8rem; color:var(--ink-muted); margin:0}
+.specialref .lbl{color:var(--brass)}
+.specialref ul{margin:.1rem 0 0; padding-left:1.1rem; font-size:.78rem; color:var(--ink-muted)}
+.legend dl{margin:0; display:flex; flex-direction:column; gap:.45rem}
+.legend dt{font-family:var(--mono); font-size:.64rem; letter-spacing:.08em; text-transform:uppercase; color:var(--brass)}
+.legend dd{margin:.1rem 0 0; font-size:.78rem; color:var(--ink-muted)}
+.legend b{color:var(--ink); font-weight:600}
+
+.foot{max-width:1500px; margin:0 auto; padding:1rem clamp(.9rem,2vw,1.6rem) 2.5rem; color:var(--ink-dim); font-size:.75rem}
+.modal{position:fixed; inset:0; background:rgba(8,10,13,.78); z-index:80; display:flex; align-items:center; justify-content:center; padding:1.2rem}
+.modal[hidden]{display:none}
+.modal-box{background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:1rem 1.1rem; width:min(46rem,100%); max-height:85vh; display:flex; flex-direction:column; gap:.6rem}
+.modal-hd{display:flex; align-items:center; justify-content:space-between; gap:1rem}
+.modal-hd h2{font-size:1.2rem}
+.modal-box textarea{flex:1; min-height:14rem; font-family:var(--mono); font-size:.7rem; line-height:1.5}
+.modal-actions{display:flex; gap:.5rem; justify-content:flex-end}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:1.4rem; background:var(--surface-2); border:1px solid var(--brass);
+  color:var(--brass-bright); font-family:var(--mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:.55rem .9rem; border-radius:2px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:60}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+#print-sheet{display:none}
+@media print{
+  .masthead,.shell,.foot,.toast,.modal{display:none !important}
+  #print-sheet{display:block}
+  @page{margin:14mm}
+  html,body{background:#fff !important; color:#141414 !important}
+  #print-sheet{font-family:var(--body); color:#141414; font-size:10pt; line-height:1.42}
+  #print-sheet h1{font-family:var(--display); font-size:22pt; margin:0 0 2pt}
+  #print-sheet .p-sub{font-family:var(--mono); font-size:8pt; letter-spacing:.06em; color:#555; margin-bottom:8pt}
+  #print-sheet .p-look{font-style:italic; color:#333; margin:0 0 10pt}
+  #print-sheet h2{font-family:var(--mono); font-size:8pt; letter-spacing:.16em; text-transform:uppercase; color:#7a5418;
+    border-bottom:.6pt solid #c9b48a; padding-bottom:2pt; margin:12pt 0 5pt}
+  #print-sheet .p-cols{display:grid; grid-template-columns:1fr 1fr; gap:10pt 18pt}
+  #print-sheet .p-kit{columns:2; column-gap:18pt}
+  #print-sheet table{width:100%; border-collapse:collapse; font-size:9pt}
+  #print-sheet td,#print-sheet th{text-align:left; padding:1.5pt 0; vertical-align:top}
+  #print-sheet th{font-family:var(--mono); font-size:7.5pt; letter-spacing:.08em; text-transform:uppercase; color:#666; font-weight:400}
+  #print-sheet .num{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+  #print-sheet .box{display:inline-block; width:8pt; height:8pt; border:.7pt solid #444; margin-right:2pt; vertical-align:-1pt}
+  #print-sheet .box.on{background:#444}
+  #print-sheet ul{margin:0; padding-left:11pt}
+  #print-sheet li{margin-bottom:2pt}
+  #print-sheet .p-item{margin-bottom:5pt; break-inside:avoid}
+  #print-sheet .p-item b{font-weight:600}
+  #print-sheet .p-src{font-family:var(--mono); font-size:7pt; letter-spacing:.08em; text-transform:uppercase; color:#8a6a2f}
+  #print-sheet .p-block{break-inside:avoid}
+  #print-sheet .p-flow{break-inside:auto}
+  #print-sheet .p-rule{color:#555; font-size:8.5pt; border-top:.5pt solid #ddd; margin-top:10pt; padding-top:5pt}
+}
+</style>
+<style>
+/* concern-specific */
+.counter{display:flex; align-items:baseline; gap:.4rem; font-family:var(--mono); font-size:.7rem; color:var(--ink-muted)}
+.counter b{color:var(--brass-bright); font-size:.95rem}
+.counter.full b{color:var(--ok)}
+.counter.over b{color:var(--bad)}
+.linked{font-family:var(--mono); font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); text-decoration:none; border:1px solid var(--line); border-radius:2px; padding:.5rem .85rem}
+.linked:hover{border-color:var(--brass); color:var(--brass-bright)}
+.itemrow{display:flex; gap:.4rem; align-items:center}
+.itemrow input{flex:1 1 12rem}
+.itemrow .uses{flex:0 0 5.5rem}
+.tone{border:1px solid var(--line-soft); border-left:2px solid var(--line); background:var(--ground-2); border-radius:2px; padding:.65rem .75rem; display:flex; flex-direction:column; gap:.35rem}
+.tone h4{font-family:var(--display); font-size:1rem}
+.tone p{font-size:.79rem; color:var(--ink-muted); font-style:italic; margin:0}
+.tone .chips{margin-top:.15rem}
+.test{display:flex; gap:.55rem; align-items:flex-start; padding:.5rem 0; border-top:1px solid var(--line-soft)}
+.test:first-of-type{border-top:0}
+.test input{width:auto; flex:0 0 auto; margin-top:.25rem}
+.test .tbody{flex:1}
+.test b{display:block; font-size:.88rem; margin-bottom:.1rem}
+.test span{font-size:.78rem; color:var(--ink-muted)}
+.test .ex{font-family:var(--mono); font-size:.68rem; color:var(--ink-dim); display:block; margin-top:.25rem}
+.benefit{border:1px solid var(--line-soft); background:var(--ground-2); border-radius:2px; padding:.6rem .75rem; display:flex; flex-direction:column; gap:.3rem; cursor:pointer; text-align:left; font-family:var(--body); color:var(--ink)}
+.benefit:hover{border-color:var(--ink-dim)}
+.benefit[aria-pressed="true"]{border-color:var(--brass); background:linear-gradient(180deg,var(--brass-soft),transparent 70%)}
+.benefit h4{font-family:var(--display); font-size:1rem}
+.benefit p{font-size:.78rem; color:var(--ink-muted); margin:0}
+.member{display:flex; gap:.4rem; align-items:center}
+.member input{flex:1 1 8rem}
+.member .sig{flex:0 0 auto; font-family:var(--mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); display:flex; align-items:center; gap:.3rem}
+.member .sig input{width:auto}
+@media print{ #print-sheet th{width:5.2em; padding-right:6pt} }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-in">
+    <div class="wordmark">
+      <h1>Fallen London Concern Ledger</h1>
+      <span class="lbl">Concern creation &middot; corebook preview, Aug 2026</span>
+    </div>
+    <div class="mast-actions">
+      <a class="linked" href="index.html">Character ledger →</a>
+      <button class="btn" id="btn-example" type="button">Load example</button>
+      <button class="btn" id="btn-reset" type="button">Clear</button>
+      <button class="btn" id="btn-load" type="button">Load…</button>
+      <button class="btn" id="btn-save" type="button">Save file</button>
+      <button class="btn btn-primary" id="btn-pdf" type="button">Export PDF</button>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Concern creation steps"><ol id="rail"></ol></nav>
+  <main>
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lbl eyebrow" id="step-eyebrow"></span>
+        <h2 id="step-title"></h2>
+        <p id="step-intro"></p>
+      </div>
+      <div class="panel-bd" id="step-body"></div>
+    </section>
+  </main>
+  <aside class="sheet" aria-label="Live concern record">
+    <div class="sheet-hd">
+      <h2 id="sheet-name">An Unnamed Concern</h2>
+      <div class="sub" id="sheet-line">no grand ambition yet</div>
+    </div>
+    <div id="sheet-body"></div>
+  </aside>
+</div>
+
+<footer class="foot">
+  Built from <em>Fallen London: the Roleplaying Game</em>, corebook FULL preview (2026&#8209;08&#8209;06), chapter&nbsp;3.
+  The concern comes first: its grand ambition and principal shape every character built in the
+  <a href="index.html">character ledger</a>.
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-hd"><h2 id="modal-title">Save or load your concern</h2>
+      <button class="btn" id="modal-close" type="button">Close</button></div>
+    <p id="modal-note" class="hint"></p>
+    <textarea id="modal-text" spellcheck="false" aria-label="Concern data"></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="modal-file" type="button">Choose a file…</button>
+      <button class="btn" id="modal-selectall" type="button">Select all</button>
+      <button class="btn btn-primary" id="modal-apply" type="button">Load this text</button>
+    </div>
+  </div>
+</div>
+<div id="print-sheet" aria-hidden="true"></div>
+<script>
+"use strict";
+/* ============================ DATA ============================ */
+const TONES = [
+  ["Criminality","Dancing in the grey spaces where the rules don’t tread, avoiding the glance of the powers that be.",
+   ["corner the city’s trade in Prisoner’s Honey","steal the greatest treasures of the Masters","unite every syndicate in the city"]],
+  ["Intrigue","Plots of secrets and subterfuge, of clandestine deals and hidden meanings. Shadows and knives in the dark.",
+   ["eliminate the entirety of the Calendar Council once and for all","replace the Traitor Empress with a controllable impersonation","secretly take control of the Bazaar"]],
+  ["Investigation & Mystery","Discovering the hidden and deepest truths, the knowledge that burns the eyes and the mind.",
+   ["discover the identity of the Sixth City and when it will fall","learn the nature of every Treachery in the Neath","create a complete and stable (and non-flammable) lexicon of the Correspondence"]],
+  ["Pure Ambition","Attempts to do the unthinkable, the impossible, the grand and inalterable.",
+   ["return London to the surface","create a new sun in the Neath","open all the mirrors, allowing free passage in and out of Parabola"]],
+  ["Rebellion","Casting down the greatest powers of London with fire, with rhetoric, with verve.",
+   ["dethrone the Masters","destroy the Traitor Empress and her children","liberate the Night and depose the Sun"]]
+];
+const TESTS = [
+  ["A clear, conceivable victory condition","There should be no debate over whether you have succeeded.",
+   "“Have lots of money” → “Accrue greater wealth than anyone else in the Neath” → “Write a poem that convinces the Sun to fall in love with the Bazaar”"],
+  ["It changes the Neath","An ambition cannot be about stability or maintenance; it alters the world.",
+   "“Stop any threats to London” → “Destroy the greatest threat to London: the Masters” → “Permanently destroy December of the Calendar Council”"],
+  ["It demands great effort and investigation","If the steps are obvious, ask why nobody has done it already. Better if you cannot chart the path.",
+   "“Acquire the deed for the building we live in” → “Take possession of every property in Veilgarden” → “Take possession of the Shuttered Palace”"]
+];
+const ATTRS = ["Dangerous","Persuasive","Shadowy","Watchful"];
+const ATTR_HINT = "Not just Dangerous — ruthless. Not just Shadowy — deceitful. Not just Persuasive — seductive.";
+const ADVANTAGES = ["public influence","wealth","secrets","connections","government influence","access to restricted settings",
+  "illegal goods","weapons","chemicals","intoxicants","surface goods","food","debts owed","information"];
+const RESOURCE_IDEAS = ["a purse full of Echoes","favours with a community (Urchins, Bohemians, the Constabulary…)",
+  "a phosphorescent scarab","a bottle of Morelways 1872","F.F. Gebrandt’s Superior Laudanum","a lightly bribed constable",
+  "a spoonful of Prisoner’s Honey","a pouch of solacefruit","a pot of violant ink","a lump of lamplighter beeswax"];
+const EQUIPMENT_IDEAS = [
+  ["Clothing","easily tailored suit of timeless style|Parabolan-linen frock|pair of squeakless boots|pair of spidersilk slippers"],
+  ["Weapons","poison-tipped umbrella|silvered-glass sword|Hell-wrought derringer|sharpened amber quill"],
+  ["Adornment","membership badge to an important club|scintillack diamond brooch|poison-compartmented ring|cloak of light-drinking thirsty bombazine"],
+  ["Tools","fluid-sac lockpicks|spidersilk rope|Neathglass goggles|patent scrutinizer"],
+  ["Assorted","trained lamp-cat|illegal map of London|scarf with infused surface-flower scent|constabulary badge"]
+].map(([c,l])=>({c,items:l.split("|")}));
+const BENEFITS = [
+  ["Access to contraband","Valuables of questionable provenance and definite illegality. Start with one outlawed or dangerous resource at three uses, and request another; every venture you finish delivers the last request and lets you place a new one."],
+  ["Backup on retainer","Capable hands on retainer across the city. Once per venture, secure a group of local toughs with no risk or challenge; they help for a single scene or conflict, and anything further you negotiate yourself."],
+  ["Collected esoterica","An archive of secret knowledge. Once per venture, put three questions to a factotum or clerk on subjects within your principal’s purview — arcane, hazardous and quixotic rather than current — and get honest answers."],
+  ["Conflagration of rumours","Inroads with London’s periodicals. Before a venture, create a three-box resource standing for a story your principal planted in the papers; any member may spend from that one track."],
+  ["Decent domicile","A rented property, a safe place and good beds. Between ventures, every member reduces Nightmares by 2, or one obsession by 1."],
+  ["Doctor on call","Your principal prefers their assets unscarred. Between ventures every member reduces their Wounds level by 1; once per venture the physician clears all marked Wounds boxes for everyone and drops one PC’s Wounds level by 1 — but reaching them takes time."],
+  ["Forgiveness","A name the courts and constabulary respect. Up to three times per venture, a member may invoke your principal to ignore all Suspicion from a single event — one box or five, it becomes none."],
+  ["Laboratory lessons","A well-stocked laboratory hidden in the city. Bring an appropriate item during a venture and investigate it there, treating the lab as useful equipment; between ventures each member can have it brew a single-use resource."],
+  ["Line of credit","Their credit is as good as Echoes. Every venture the concern takes a 3-box Line of Credit resource on one shared track, debts guaranteed. Spending beyond it is as risky as it would be without the benefit — expect a Guile roll."],
+  ["The city’s secrets","A whisper network. Whenever the concern learns of leads or opportunities it always learns one more, the GM’s choice, and before choosing a venture you may ask three questions about an existing one."],
+  ["Wardrobe and tailors","Nobody under your principal goes ill-groomed. Before a venture, visit their tailors and private wardrobe: every PC takes a piece of clothing-equipment suited to the endeavour — a Stylish Top-Hat, never an Irresistible Viric Mask."]
+].map(([n,t])=>({n,t}));
+const BENEFIT_SHAPES = [
+  ["A shared resource","Expendable but refreshing — an ongoing reputation, a budget out of great wealth.",
+   ["a particular shared resource with three uses at the start of every venture","a customizable shared resource with two uses at the start of every venture","a completely open resource called in mid-venture, any form the principal could manage, one shared use"]],
+  ["Custom equipment for a venture","Stores of reusable exceptional items, or the crafters who make them.",
+   ["each member gets a situation-specific piece of equipment per venture, returned afterwards","the concern gets one piece of wider use per venture, returned afterwards","the concern gets one piece of specific use per venture, and keeps it"]],
+  ["Protection from a menace","A resilience the principal can actually transfer to you.",
+   ["the first time each member marks any boxes of a menace in a venture, they mark 1 fewer (minimum 0)","each time a member marks boxes of a menace from a specified source, they mark 1 fewer (minimum 0)","the first time each member would mark 2+ boxes of a menace at once each venture, they mark a single box"]],
+  ["Recovery","Comfort or healing on tap — better quarters, an accessible doctor.",
+   ["at the end of each venture every member reduces a specific menace by two levels, or an obsession by one","at the end of each venture every member erases one box from each of two specified menaces","once per venture, relief clears all marked boxes of a specified menace for everyone"]],
+  ["Simple solutions","A name that opens doors; a prepared answer to a known kind of problem.",
+   ["before any venture, take up to three pieces of equipment each solving one highly specific problem","once during a venture, reveal a prepared simple solution to a problem facing you","before a venture, one member takes a toolkit for improvising solutions in the principal’s field"]],
+  ["Information","An archive, a network of spies — expertise you can question.",
+   ["once per venture, ask up to three questions and get truthful answers within their expertise","before a venture, ask three questions and establish a prepared single-use resource for each","once per venture, reveal a specialized piece of equipment for discovering more, returned after"]],
+  ["Additional assistance","Other agents, hired hands, or favours owed to your principal.",
+   ["once per venture, request the principal’s lackeys; given time, they arrive and solve an appropriate problem","before a venture, take an escort of lackeys whose presence gives favourable circumstances in fitting situations","once per venture, reveal that someone well-placed owes your principal a favour, and call it in as a successful roll"]]
+];
+const BENEFIT_RULES = [
+  "Ground it in the principal. The advantage must come from who and what they are.",
+  "Periodically useful and specific → three uses a venture. Instantly problem-solving → three if prepared in advance, one if decided in the moment. Generally useful → make it equipment instead.",
+  "A benefit may be purely narrative: removing uncertainty, or granting favourable circumstances, counts."
+];
+const CONCERN_NAMES = ["The Dockyard Trading Concern","Peoples’ Voices United","The Mallets","The Society of Learned Martyrs",
+  "The Extreme Philatelists’ Club","Crowfoot Row","The Literal Poets","The Penumbral Association","The Reformed Bloodletters’ Guild","Locusts"];
+const PRINCIPAL_EXAMPLES = {
+  power:"control of the city’s biggest phosphorescent scarab farms · control over several Licentiate assassins · a mob of faithful and rowdy followers",
+  attr:"Dangerous because they take no prisoners · Watchful because they have eyes everywhere",
+  acc:"eradicating the marsh-wolf infestation of ’72 · stealing every brick and beam of the new Delirium opera house · a tumultuous year as mayor",
+  name:"Dame des Guêpes · Mister Coriander · the Blighted Politician"
+};
+const LIMITS = {resources:5, equipment:3, benefits:2, advantages:3, members:5};
+
+/* ============================ STATE ============================ */
+const S = {
+  ambition:"", tests:[false,false,false], tone:"",
+  pName:"", pPower:"", pAttr:"", pAttrHow:"", pAcc:"", pAdv:[],
+  resources:[], equipment:[], benefits:[], customBenefit:{name:"",shape:"",option:"",text:""},
+  name:"", members:[], step:0
+};
+const STEPS = [
+  {n:"1", key:"ambition",  title:"Grand Ambition", sub:"The goal that unites you"},
+  {n:"2", key:"principal", title:"Principal",      sub:"Who bankrolls you"},
+  {n:"3", key:"assets",    title:"Assets",         sub:"5 resources · 3 equipment · 2 benefits"},
+  {n:"4", key:"name",      title:"Name",           sub:"What you will be known by"},
+  {n:"5", key:"members",   title:"Members",        sub:"The concern’s people"},
+  {n:"6", key:"contract",  title:"The Contract",   sub:"Sign, and commit"}
+];
+
+/* ============================ HELPERS ============================ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const listField = (arr,key,ph,uses) => arr.map((x,i)=>
+  '<div class="itemrow"><input type="text" data-list="'+key+'" data-i="'+i+'" value="'+esc(x.t||"")+'" placeholder="'+ph+'">'+
+  (uses?'<input class="uses" type="text" data-uses="'+key+'" data-i="'+i+'" value="'+esc(x.u||"2")+'" aria-label="uses">':"")+
+  '<button class="chip" type="button" data-act="del" data-list="'+key+'" data-i="'+i+'" aria-label="Remove">✕</button></div>').join("");
+const chips = (list,act,extra) => '<div class="chips">'+list.map(x=>
+  '<button class="chip" type="button" data-'+act+'="'+esc(x)+'"'+(extra||"")+'>'+esc(x)+"</button>").join("")+"</div>";
+const counter = (n,max,label) => '<span class="counter'+(n===max?" full":(n>max?" over":""))+'"><b>'+n+"/"+max+"</b> "+label+"</span>";
+const textField = (label,hint,key,value,area) =>
+  '<div class="field"><span class="lbl">'+label+"</span>"+(hint?'<span class="hint">'+hint+"</span>":"")+
+  (area?'<textarea data-text="'+key+'">'+esc(value)+"</textarea>":'<input type="text" data-text="'+key+'" value="'+esc(value)+'">')+"</div>";
+
+function checks(){
+  const out=[];
+  if(!S.ambition) out.push(["warn","No grand ambition yet — everything else follows from it."]);
+  else if(S.tests.filter(Boolean).length<3) out.push(["warn","Your ambition has not passed all three tests: "+
+    TESTS.filter((t,i)=>!S.tests[i]).map(t=>t[0].toLowerCase()).join(", ")+"."]);
+  if(!S.pName) out.push(["warn","Your principal has no name."]);
+  ["pPower","pAttr","pAcc"].forEach((k,i)=>{ if(!S[k]) out.push(["warn","Principal: "+["source of power","defining attribute","accomplishment"][i]+" unanswered."]); });
+  if(S.pAdv.length!==LIMITS.advantages) out.push([S.pAdv.length>LIMITS.advantages?"err":"warn",
+    "Principal advantages: "+S.pAdv.length+" of "+LIMITS.advantages+" chosen."]);
+  [["resources","resources"],["equipment","pieces of equipment"],["benefits","benefits"]].forEach(([k,label])=>{
+    const n=S[k].filter(x=>x.t||x.n).length, max=LIMITS[k];
+    if(n!==max) out.push([n>max?"err":"warn",(n>max?"Too many ":"")+label+": "+n+" of "+max+"."]);
+  });
+  if(!S.name) out.push(["warn","The concern is unnamed — your principal will name you if you cannot agree."]);
+  const named=S.members.filter(m=>m.name).length;
+  if(named<2) out.push(["warn","A concern needs at least two members besides the GM; three to five plays best."]);
+  if(named>LIMITS.members) out.push(["warn",named+" members — the book suggests no more than five players."]);
+  const unsigned=S.members.filter(m=>m.name&&!m.signed).length;
+  if(named>=2&&unsigned) out.push(["warn",unsigned+" member"+(unsigned>1?"s have":" has")+" not signed the contract."]);
+  if(!out.length) out.push(["ok","The concern is complete. Sign, and commit yourselves."]);
+  return out;
+}
+
+/* ============================ RAIL & STEPS ============================ */
+function renderRail(){
+  $("#rail").innerHTML = STEPS.map((s,i)=>{
+    let pick="";
+    if(s.key==="ambition") pick = S.ambition? (S.ambition.length>34?S.ambition.slice(0,34)+"…":S.ambition) : "";
+    else if(s.key==="principal") pick = S.pName||"";
+    else if(s.key==="assets") pick = S.resources.filter(x=>x.t).length+"r · "+S.equipment.filter(x=>x.t).length+"e · "+S.benefits.length+"b";
+    else if(s.key==="name") pick = S.name||"";
+    else if(s.key==="members") pick = S.members.filter(m=>m.name).length? S.members.filter(m=>m.name).length+" members":"";
+    else if(s.key==="contract"){ const n=S.members.filter(m=>m.name).length, g=S.members.filter(m=>m.name&&m.signed).length;
+      pick = n? g+"/"+n+" signed":""; }
+    return '<li><button class="step-btn'+(pick?" done":"")+'" data-step="'+i+'" aria-current="'+(i===S.step)+'" type="button">'+
+      '<span class="num">'+s.n+'</span><span><span>'+s.title+"</span>"+
+      '<span class="pick"'+(pick?"":' style="color:var(--ink-dim)"')+">"+esc(pick||s.sub)+"</span></span></button></li>";
+  }).join("");
+}
+
+function renderStep(){
+  const step=STEPS[S.step], k=step.key, B=$("#step-body");
+  let intro="", html="";
+
+  if(k==="ambition"){
+    intro="One sentence, enormous in implication. Every PC begins play with a strength-3 obsession tied to it, so everyone at the table has to want to chase it.";
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      textField("Our grand ambition","Write it as a goal: “create perfect life”, “return London to the surface”, “dethrone the Masters”.","ambition",S.ambition,true)+
+      '<div class="field"><span class="lbl">The three tests</span><span class="hint">The book’s own checks. Tick each once your sentence passes it.</span>'+
+        TESTS.map((t,i)=>'<label class="test"><input type="checkbox" data-test="'+i+'" '+(S.tests[i]?"checked":"")+'>'+
+          '<span class="tbody"><b>'+esc(t[0])+'</b><span>'+esc(t[1])+'</span><span class="ex">'+esc(t[2])+"</span></span></label>").join("")+"</div>"+
+      '<div class="field"><span class="lbl">Theatres of play</span><span class="hint">Sample tones and ambitions. Click one to drop it in, then make it yours.</span>'+
+        '<div class="cards" style="margin-top:.3rem">'+TONES.map(t=>'<div class="tone'+(S.tone===t[0]?'" style="border-left-color:var(--brass)':"")+'"><h4>'+esc(t[0])+"</h4><p>"+esc(t[1])+"</p>"+
+          chips(t[2],"ambition",' data-tone="'+esc(t[0])+'"')+"</div>").join("")+"</div></div></div>";
+  }
+
+  if(k==="principal"){
+    intro="A sponsor of real power who wants your ambition achieved but has no time to do it themselves. Always an NPC, usually detached — and the one who can withdraw everything. Answer five questions and they exist.";
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      textField("What is their best-known, strongest source of power?","The arena Londoners think of on hearing the name — not their secrets. "+PRINCIPAL_EXAMPLES.power,"pPower",S.pPower,true)+
+      '<div class="field"><span class="lbl">Which attribute defines them?</span><span class="hint">'+esc(ATTR_HINT)+"</span>"+
+        '<div class="chips">'+ATTRS.map(a=>'<button class="chip'+(S.pAttr===a?" on":"")+'" type="button" data-attr="'+a+'">'+a+"</button>").join("")+"</div>"+
+        '<input type="text" data-text="pAttrHow" value="'+esc(S.pAttrHow)+'" placeholder="…and how? one word or a short phrase — ruthless, dissective, seductive" style="margin-top:.4rem"></div>'+
+      textField("One great accomplishment they are known for","Public, and credited to them. "+PRINCIPAL_EXAMPLES.acc,"pAcc",S.pAcc,true)+
+      '<div class="field"><span class="lbl">Three kinds of advantage they bring</span>'+
+        '<span class="hint">Sets of assets, not specific items — what arrives without your asking. '+counter(S.pAdv.length,LIMITS.advantages,"chosen")+"</span>"+
+        chips(ADVANTAGES,"adv")+
+        (S.pAdv.length?'<div class="chips" style="margin-top:.35rem">'+S.pAdv.map((a,i)=>'<button class="chip on" type="button" data-advdel="'+i+'">'+esc(a)+" ✕</button>").join("")+"</div>":"")+
+        '<div class="row" style="margin-top:.35rem"><input type="text" data-newadv="1" placeholder="Or write your own advantage" value="'+esc(S.newAdv||"")+'">'+
+        '<button class="btn" type="button" data-act="add-adv" style="flex:0 0 auto">Add</button></div></div>'+
+      textField("What name do they use?","The name your characters would use. "+PRINCIPAL_EXAMPLES.name,"pName",S.pName)+
+      "</div>";
+  }
+
+  if(k==="assets"){
+    intro="What the principal hands you at the outset: five resources of two uses each, three pieces of notable equipment, and two benefits. The GM has the final say, and everything should make sense coming from this principal.";
+    const eqIdeas=[].concat(...EQUIPMENT_IDEAS.map(g=>g.items));
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      '<div class="field"><span class="lbl">Resources '+counter(S.resources.filter(x=>x.t).length,LIMITS.resources,"held by the concern")+"</span>"+
+        '<span class="hint">Spent as they are used. Two uses each by default. Spread them across different kinds of utility.</span>'+
+        listField(S.resources,"resources","A resource",true)+
+        '<button class="btn" type="button" data-act="add-resource" style="margin-top:.4rem;align-self:flex-start">Add a resource</button>'+
+        '<span class="hint" style="margin-top:.5rem">From the book:</span>'+chips(RESOURCE_IDEAS,"resource")+"</div>"+
+      '<div class="field"><span class="lbl">Equipment '+counter(S.equipment.filter(x=>x.t).length,LIMITS.equipment,"held by the concern")+"</span>"+
+        '<span class="hint">Notable and reusable, and it belongs to the concern — one member carries it on a venture. Prefer things useful to several PCs.</span>'+
+        listField(S.equipment,"equipment","A piece of equipment",false)+
+        '<button class="btn" type="button" data-act="add-equipment" style="margin-top:.4rem;align-self:flex-start">Add equipment</button>'+
+        EQUIPMENT_IDEAS.map(g=>'<span class="hint" style="margin-top:.45rem">'+esc(g.c)+":</span>"+chips(g.items,"equipment")).join("")+"</div>"+
+      "</div>";
+  }
+
+  if(k==="benefitsX"){}
+
+  if(k==="name"){
+    intro="You might not be famous yet, but you will be. If you cannot agree, your principal names you.";
+    html = '<div class="detail" style="border-top:0;padding-top:0">'+
+      textField("Our concern is called","","name",S.name)+
+      '<div class="field"><span class="lbl">Sample names</span>'+chips(CONCERN_NAMES,"cname")+"</div></div>";
+  }
+
+  if(k==="members"){
+    intro="Two players and a GM at minimum; three to five players plays best. Each member builds a character in the character ledger, and each begins with a strength-3 obsession tied to the grand ambition.";
+    html = '<div class="detail" style="border-top:0;padding-top:0"><div class="field"><span class="lbl">Members</span>'+
+      '<span class="hint">Character name, and the player behind them.</span>'+
+      S.members.map((m,i)=>'<div class="member"><input type="text" data-member="name" data-i="'+i+'" value="'+esc(m.name||"")+'" placeholder="Character">'+
+        '<input type="text" data-member="player" data-i="'+i+'" value="'+esc(m.player||"")+'" placeholder="Player">'+
+        '<button class="chip" type="button" data-act="del-member" data-i="'+i+'" aria-label="Remove">✕</button></div>').join("")+
+      '<button class="btn" type="button" data-act="add-member" style="margin-top:.45rem;align-self:flex-start">Add a member</button></div>'+
+      '<div class="field"><span class="lbl">Next</span><span class="hint">Build each character in the <a href="index.html">character ledger</a> — nature, origin, profession, disposition, association and twist, then attributes, obsessions, expertise and kit.</span></div></div>';
+  }
+
+  if(k==="contract"){
+    intro="The last act in creating your concern: the final chance to turn away, when you instead set fire to your own future. Sign it, one by one, with your characters’ names.";
+    html = '<div class="detail" style="border-top:0;padding-top:0"><div class="field"><span class="lbl">The inception agreement</span>'+
+      '<span class="hint">Signing binds the concern to its principal — and gives the principal the leverage to demand results, or withdraw everything.</span>'+
+      (S.members.filter(m=>m.name).length? S.members.map((m,i)=> m.name?
+        '<label class="member"><span style="flex:1">'+esc(m.name)+(m.player?' <span class="rank-note">'+esc(m.player)+"</span>":"")+"</span>"+
+        '<span class="sig"><input type="checkbox" data-sign="'+i+'" '+(m.signed?"checked":"")+"> signed</span></label>":"").join("")
+        : '<span class="hint">Add your members on the previous step first.</span>')+"</div>"+
+      '<div class="field"><span class="lbl">Then</span><span class="hint">Introduce the characters to each other, share obsessions and highest attributes and skills, and fill in the bonds between every pair of PCs — those live on each character’s own sheet in the ledger.</span></div></div>';
+  }
+
+  $("#step-eyebrow").textContent = "Step "+(S.step+1)+" of "+STEPS.length+" · "+step.sub;
+  $("#step-title").textContent = step.title;
+  $("#step-intro").textContent = intro;
+  B.innerHTML = html;
+  if(k==="assets") B.insertAdjacentHTML("beforeend", benefitsBlock());
+}
+
+function benefitsBlock(){
+  const chosen=S.benefits.map(b=>b.n);
+  return '<div class="detail"><div class="field"><span class="lbl">Benefits '+counter(S.benefits.length,LIMITS.benefits,"from your principal")+"</span>"+
+    '<span class="hint">Special ways the principal boosts the concern. Pick the two most directly tied to the grand ambition.</span>'+
+    '<div class="cards" style="margin-top:.35rem">'+BENEFITS.map(b=>
+      '<button class="benefit" type="button" data-benefit="'+esc(b.n)+'" aria-pressed="'+(chosen.includes(b.n))+'"><h4>'+esc(b.n)+"</h4><p>"+esc(b.t)+"</p></button>").join("")+"</div></div>"+
+    '<div class="field"><span class="lbl">Or build your own</span><span class="hint">Name the part of the principal you are representing, choose a shape for it, then choose its limit.</span>'+
+      '<input type="text" data-text="cbName" value="'+esc(S.customBenefit.name)+'" placeholder="Benefit name — e.g. “The Physician’s stipend”">'+
+      '<select data-cbshape="1" style="margin-top:.4rem"><option value="">— how does it help? —</option>'+
+        BENEFIT_SHAPES.map(s=>'<option value="'+esc(s[0])+'"'+(S.customBenefit.shape===s[0]?" selected":"")+">"+esc(s[0])+" — "+esc(s[1])+"</option>").join("")+"</select>"+
+      (S.customBenefit.shape? '<select data-cboption="1" style="margin-top:.4rem"><option value="">— choose its limit —</option>'+
+        (BENEFIT_SHAPES.find(s=>s[0]===S.customBenefit.shape)[2]).map(o=>'<option value="'+esc(o)+'"'+(S.customBenefit.option===o?" selected":"")+">"+esc(o)+"</option>").join("")+"</select>":"")+
+      '<button class="btn" type="button" data-act="add-benefit" style="margin-top:.45rem;align-self:flex-start">Add this benefit</button></div>'+
+    '<div class="field"><span class="lbl">Rules of thumb</span><ul style="margin:.2rem 0 0;padding-left:1.1rem">'+
+      BENEFIT_RULES.map(r=>'<li style="font-size:.78rem;color:var(--ink-muted);margin-bottom:.2rem">'+esc(r)+"</li>").join("")+"</ul></div>"+
+    (S.benefits.length?'<div class="field"><span class="lbl">Taken</span>'+S.benefits.map((b,i)=>
+      '<div class="kv"><span class="k">'+esc(b.n)+(b.o?' <span class="rank-note">'+esc(b.o)+"</span>":"")+'</span><span class="v"><button class="chip" type="button" data-act="del-benefit" data-i="'+i+'">✕</button></span></div>').join("")+"</div>":"")+
+    "</div>";
+}
+
+/* ============================ SHEET ============================ */
+function renderSheet(){
+  $("#sheet-name").textContent = S.name || "An Unnamed Concern";
+  $("#sheet-line").textContent = S.ambition || "no grand ambition yet";
+  const res=S.resources.filter(x=>x.t), eq=S.equipment.filter(x=>x.t), mem=S.members.filter(m=>m.name);
+  $("#sheet-body").innerHTML =
+    '<div class="sect"><span class="lbl">Grand ambition</span>'+
+      (S.ambition?'<p style="font-size:.86rem">'+esc(S.ambition)+"</p>":'<span class="rank-note">unwritten</span>')+
+      '<div class="chips" style="margin-top:.5rem">'+TESTS.map((t,i)=>'<span class="chip" style="cursor:default;'+(S.tests[i]?"border-style:solid;border-color:var(--ok);color:var(--ok)":"")+'">'+
+        (S.tests[i]?"✓ ":"")+esc(t[0].toLowerCase())+"</span>").join("")+"</div></div>"+
+    '<div class="sect"><span class="lbl">Principal</span>'+
+      '<div class="kv"><span class="k">Name</span><span class="v">'+esc(S.pName||"—")+"</span></div>"+
+      '<div class="kv"><span class="k">Attribute</span><span class="v">'+esc(S.pAttr||"—")+(S.pAttrHow?" · "+esc(S.pAttrHow):"")+"</span></div>"+
+      (S.pPower?'<div class="kv"><span class="k">Power</span><span class="v">'+esc(S.pPower)+"</span></div>":"")+
+      (S.pAcc?'<div class="kv"><span class="k">Known for</span><span class="v">'+esc(S.pAcc)+"</span></div>":"")+
+      (S.pAdv.length?'<div class="kv"><span class="k">Provides</span><span class="v">'+S.pAdv.map(esc).join(" · ")+"</span></div>":"")+"</div>"+
+    '<div class="sect"><span class="lbl">Resources '+counter(res.length,LIMITS.resources,"")+"</span>"+
+      (res.length?res.map(r=>'<div class="kv"><span class="k">'+esc(r.t)+'</span><span class="v">'+esc(r.u||"2")+" uses</span></div>").join(""):'<span class="rank-note">none yet</span>')+"</div>"+
+    '<div class="sect"><span class="lbl">Equipment '+counter(eq.length,LIMITS.equipment,"")+"</span>"+
+      (eq.length?eq.map(r=>'<div class="kv"><span class="k">'+esc(r.t)+"</span></div>").join(""):'<span class="rank-note">none yet</span>')+"</div>"+
+    '<div class="sect"><span class="lbl">Benefits '+counter(S.benefits.length,LIMITS.benefits,"")+"</span>"+
+      (S.benefits.length?S.benefits.map(b=>'<div class="trait"><span class="tsrc">'+esc(b.n)+"</span><span>"+esc(b.o||b.t||"")+"</span></div>").join(""):'<span class="rank-note">none yet</span>')+"</div>"+
+    (mem.length?'<div class="sect"><span class="lbl">Members</span>'+mem.map(m=>
+      '<div class="kv"><span class="k">'+esc(m.name)+(m.player?" · "+esc(m.player):"")+'</span><span class="v">'+(m.signed?"signed":"—")+"</span></div>").join("")+"</div>":"")+
+    '<div class="sect"><span class="lbl">Checks</span>'+checks().map(n=>'<div class="notice '+n[0]+'"><span class="dot"></span><span>'+esc(n[1])+"</span></div>").join("")+"</div>"+
+    '<div class="sect legend"><span class="lbl">How this works at the table</span><dl>'+
+      "<dt>The concern is the boundary</dt><dd>In the concern, you are a PC; out of it, you are not. Disband, or change ambition or principal, and you are forming a new concern — likely with a new cast.</dd>"+
+      "<dt>The principal</dt><dd>Detached by default: they direct from a distance and reap the rewards, and their leverage is the inception agreement and the threat of withdrawing support. Their motives are the GM's to decide; you only choose who they are.</dd>"+
+      "<dt>Who picks what</dt><dd>The GM selects the starting assets, but at the table each player takes at least one resource, and one benefit or one piece of equipment, until the five, three and two are filled.</dd>"+
+      "<dt>Not a ceiling</dt><dd>These are a starting point. More can come later — though prising specific equipment out of a principal is its own endeavour between ventures, and they do not always replace what you lose.</dd></dl></div>";
+  renderRail();
+}
+
+/* ============================ PRINT ============================ */
+function renderPrint(){
+  const res=S.resources.filter(x=>x.t), eq=S.equipment.filter(x=>x.t), mem=S.members.filter(m=>m.name);
+  document.getElementById("print-sheet").innerHTML =
+    "<h1>"+esc(S.name||"An Unnamed Concern")+"</h1>"+
+    '<div class="p-sub">Concern record · Fallen London: the Roleplaying Game</div>'+
+    "<h2>Grand ambition</h2><p>"+esc(S.ambition||"—")+"</p>"+
+    '<div class="p-cols"><div>'+
+      "<h2>Principal</h2><table>"+
+      "<tr><th>Name</th><td>"+esc(S.pName||"—")+"</td></tr>"+
+      "<tr><th>Attribute</th><td>"+esc(S.pAttr||"—")+(S.pAttrHow?" — "+esc(S.pAttrHow):"")+"</td></tr>"+
+      "<tr><th>Power</th><td>"+esc(S.pPower||"—")+"</td></tr>"+
+      "<tr><th>Known for</th><td>"+esc(S.pAcc||"—")+"</td></tr>"+
+      "<tr><th>Provides</th><td>"+(S.pAdv.length?S.pAdv.map(esc).join(", "):"—")+"</td></tr></table>"+
+      "<h2>Members</h2><table>"+(mem.length?mem.map(m=>"<tr><td>"+esc(m.name)+"</td><td>"+esc(m.player||"")+'</td><td class="num">'+(m.signed?"signed":"unsigned")+"</td></tr>").join(""):"<tr><td>—</td></tr>")+"</table>"+
+    "</div><div>"+
+      "<h2>Resources</h2><table>"+(res.length?res.map(r=>"<tr><td>"+esc(r.t)+'</td><td class="num">'+boxRow(Number(r.u)||2)+"</td></tr>").join(""):"<tr><td>—</td></tr>")+"</table>"+
+      "<h2>Equipment</h2><table>"+(eq.length?eq.map(r=>"<tr><td>"+esc(r.t)+"</td></tr>").join(""):"<tr><td>—</td></tr>")+"</table>"+
+    "</div></div>"+
+    '<div class="p-block"><h2>Benefits</h2>'+(S.benefits.length?S.benefits.map(b=>
+      '<div class="p-item"><b>'+esc(b.n)+"</b><br>"+esc(b.o||b.t||"")+"</div>").join(""):"<p>—</p>")+"</div>"+
+    '<p class="p-rule"><b>The bargain.</b> The principal provides; the concern delivers. Assets here are a starting point, not a ceiling — but specific equipment must be prised out between ventures, and what you lose is not always replaced. Signing the inception agreement is what gives the principal their leverage.</p>';
+}
+function boxRow(n){ let o=""; for(let i=0;i<n;i++) o+='<span class="box"></span>'; return o; }
+
+/* ============================ SAVE · LOAD · EXPORT ============================ */
+const SAVE_KEYS=["ambition","tests","tone","pName","pPower","pAttr","pAttrHow","pAcc","pAdv","resources","equipment","benefits","customBenefit","name","members","step"];
+const serialize = () => { const o={}; SAVE_KEYS.forEach(k=>{ if(S[k]!==undefined) o[k]=S[k]; });
+  return JSON.stringify({format:"fallen-london-concern-ledger",version:1,concern:o},null,2); };
+function applyData(txt){
+  let d; try{ d=JSON.parse(txt); }catch(e){ toast("That is not valid JSON"); return false; }
+  const c=d&&d.concern?d.concern:d;
+  if(!c||typeof c!=="object"){ toast("No concern found in that file"); return false; }
+  SAVE_KEYS.forEach(k=>{ if(c[k]!==undefined) S[k]=c[k]; });
+  S.tests=S.tests||[false,false,false]; S.pAdv=S.pAdv||[]; S.resources=S.resources||[];
+  S.equipment=S.equipment||[]; S.benefits=S.benefits||[]; S.members=S.members||[];
+  S.customBenefit=S.customBenefit||{name:"",shape:"",option:"",text:""};
+  S.step=Math.min(Math.max(0,Number(S.step)||0),STEPS.length-1);
+  rerender(); toast("Concern loaded"); return true;
+}
+const slug = () => (S.name||"unnamed-concern").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
+const embedded = () => { try{ return window.self!==window.top; }catch(e){ return true; } };
+let DOWNLOADS=null;
+if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(d=>{DOWNLOADS=d;}).catch(()=>{});
+function saveLocally(txt){
+  try{
+    const blob=new Blob([txt],{type:"application/json"}), url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download=slug()+"-concern.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000); toast("Saved to your downloads"); return true;
+  }catch(e){ return false; }
+}
+async function saveFile(){
+  const txt=serialize();
+  if(DOWNLOADS){
+    try{ await DOWNLOADS.save({filename:slug()+"-concern.json",data:txt}); toast("Concern saved"); }
+    catch(err){ const c=err&&err.code;
+      if(c==="declined") toast("Save cancelled");
+      else if(!embedded()&&saveLocally(txt)){} else openModal("save"); }
+    return;
+  }
+  if(!embedded()&&saveLocally(txt)) return;
+  openModal("save");
+}
+function openModal(mode){
+  $("#modal-title").textContent = mode==="save"?"Your concern, as text":"Load a concern";
+  $("#modal-note").textContent = mode==="save"
+    ? "This page cannot write to your disk from here, so copy the text below into a .json file."
+    : "Choose a saved .json file, or paste one below and load it.";
+  $("#modal-text").value = mode==="save"?serialize():"";
+  $("#modal-apply").hidden=(mode==="save"); $("#modal-file").hidden=(mode==="save"); $("#modal-selectall").hidden=(mode!=="save");
+  $("#modal").hidden=false; $("#modal-text").focus(); if(mode==="save") $("#modal-text").select();
+}
+function exportPDF(){ renderPrint(); toast("Choose “Save as PDF” in the print dialog");
+  setTimeout(()=>{ try{ window.print(); }catch(e){ toast("Printing is blocked here — press Ctrl/Cmd+P"); } },120); }
+window.addEventListener("beforeprint",renderPrint);
+
+/* ============================ EVENTS ============================ */
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+function rerender(){ renderStep(); renderSheet(); }
+
+document.addEventListener("click",e=>{
+  const st=e.target.closest("[data-step]");
+  if(st){ S.step=Number(st.dataset.step); rerender(); window.scrollTo({top:0,behavior:"smooth"}); return; }
+  const amb=e.target.closest("[data-ambition]");
+  if(amb){ S.ambition=amb.dataset.ambition; S.tone=amb.dataset.tone||""; rerender(); return; }
+  const at=e.target.closest("[data-attr]");
+  if(at){ S.pAttr=(S.pAttr===at.dataset.attr)?"":at.dataset.attr; rerender(); return; }
+  const ad=e.target.closest("[data-adv]");
+  if(ad){ const v=ad.dataset.adv;
+    if(S.pAdv.includes(v)) S.pAdv=S.pAdv.filter(x=>x!==v); else S.pAdv.push(v);
+    rerender(); return; }
+  const adx=e.target.closest("[data-advdel]");
+  if(adx){ S.pAdv.splice(Number(adx.dataset.advdel),1); rerender(); return; }
+  const rs=e.target.closest("[data-resource]");
+  if(rs){ S.resources.push({t:rs.dataset.resource,u:"2"}); rerender(); return; }
+  const eq=e.target.closest("[data-equipment]");
+  if(eq){ S.equipment.push({t:eq.dataset.equipment}); rerender(); return; }
+  const cn=e.target.closest("[data-cname]");
+  if(cn){ S.name=cn.dataset.cname; rerender(); return; }
+  const bf=e.target.closest("[data-benefit]");
+  if(bf){ const n=bf.dataset.benefit, i=S.benefits.findIndex(b=>b.n===n);
+    if(i>=0) S.benefits.splice(i,1); else S.benefits.push({n,t:(BENEFITS.find(b=>b.n===n)||{}).t});
+    rerender(); return; }
+  const act=e.target.closest("[data-act]");
+  if(act){
+    const a=act.dataset.act, i=Number(act.dataset.i);
+    if(a==="del"){ S[act.dataset.list].splice(i,1); }
+    if(a==="add-resource") S.resources.push({t:"",u:"2"});
+    if(a==="add-equipment") S.equipment.push({t:""});
+    if(a==="add-member") S.members.push({name:"",player:"",signed:false});
+    if(a==="del-member") S.members.splice(i,1);
+    if(a==="del-benefit") S.benefits.splice(i,1);
+    if(a==="add-adv"){ const v=(S.newAdv||"").trim(); if(v&&!S.pAdv.includes(v)){ S.pAdv.push(v); S.newAdv=""; } }
+    if(a==="add-benefit"){
+      const cb=S.customBenefit;
+      if(cb.name&&cb.shape){ S.benefits.push({n:cb.name,o:cb.option||cb.shape}); S.customBenefit={name:"",shape:"",option:"",text:""}; }
+      else toast("Name the benefit and choose how it helps");
+    }
+    rerender(); return;
+  }
+});
+
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.test!==undefined){ S.tests[Number(t.dataset.test)]=t.checked; renderSheet(); return; }
+  if(t.dataset.sign!==undefined){ S.members[Number(t.dataset.sign)].signed=t.checked; renderSheet(); return; }
+  if(t.dataset.cbshape!==undefined){ S.customBenefit.shape=t.value; S.customBenefit.option=""; rerender(); return; }
+  if(t.dataset.cboption!==undefined){ S.customBenefit.option=t.value; renderSheet(); return; }
+});
+
+document.addEventListener("input",e=>{
+  const t=e.target, k=t.dataset.text;
+  if(k){ if(k==="cbName") S.customBenefit.name=t.value; else S[k]=t.value; renderSheet(); return; }
+  if(t.dataset.list!==undefined){ S[t.dataset.list][Number(t.dataset.i)].t=t.value; renderSheet(); return; }
+  if(t.dataset.uses!==undefined){ S[t.dataset.uses][Number(t.dataset.i)].u=t.value; renderSheet(); return; }
+  if(t.dataset.member!==undefined){ S.members[Number(t.dataset.i)][t.dataset.member]=t.value; renderSheet(); return; }
+  if(t.dataset.newadv!==undefined){ S.newAdv=t.value; return; }
+});
+
+$("#btn-save").addEventListener("click",saveFile);
+$("#btn-pdf").addEventListener("click",exportPDF);
+$("#btn-load").addEventListener("click",()=>openModal("load"));
+$("#modal-close").addEventListener("click",()=>{ $("#modal").hidden=true; });
+$("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") $("#modal").hidden=true; });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") $("#modal").hidden=true; });
+$("#modal-selectall").addEventListener("click",()=>$("#modal-text").select());
+$("#modal-apply").addEventListener("click",()=>{ if(applyData($("#modal-text").value)) $("#modal").hidden=true; });
+$("#modal-file").addEventListener("click",()=>$("#file-input").click());
+$("#file-input").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ if(applyData(String(r.result))) $("#modal").hidden=true; };
+  r.onerror=()=>toast("That file could not be read");
+  r.readAsText(f); e.target.value="";
+});
+$("#btn-reset").addEventListener("click",()=>{
+  Object.assign(S,{ambition:"",tests:[false,false,false],tone:"",pName:"",pPower:"",pAttr:"",pAttrHow:"",pAcc:"",pAdv:[],
+    resources:[],equipment:[],benefits:[],customBenefit:{name:"",shape:"",option:"",text:""},name:"",members:[],newAdv:"",step:0});
+  rerender(); toast("Ledger cleared");
+});
+$("#btn-example").addEventListener("click",()=>{
+  Object.assign(S,{
+    ambition:"Create perfect life.", tests:[true,true,true], tone:"Pure Ambition",
+    pName:"the Keen Physician", pPower:"Knowledge of both the Red Science and the Shapeling Arts, practised in seclusion.",
+    pAttr:"Watchful", pAttrHow:"dissective — she does not merely watch, she cuts to get a better look",
+    pAcc:"Cured the Gant Malady, which had been cutting through the city. The cure had side effects — those cured grew tentacles here and there — but they lived.",
+    pAdv:["medical supplies and chemicals","esoteric supplies and knowledge","favours in the government"],
+    resources:[{t:"medical supplies — bandages and stitches",u:"2"},{t:"a dwindled jar of chloroform",u:"2"},
+      {t:"a nodule of deep amber",u:"2"},{t:"a two-use stack of Echoes from a grateful stipend",u:"2"},{t:"a pot of violant ink",u:"2"}],
+    equipment:[{t:"a non-flammable containment box for dangerous things"},{t:"patent scrutinizer"},{t:"Neathglass goggles"}],
+    benefits:[{n:"Collected esoterica",t:BENEFITS.find(b=>b.n==="Collected esoterica").t},
+              {n:"Doctor on call",t:BENEFITS.find(b=>b.n==="Doctor on call").t}],
+    customBenefit:{name:"",shape:"",option:"",text:""},
+    name:"The Society of Learned Martyrs",
+    members:[{name:"the Glistening Hunter",player:"Cass",signed:true},{name:"Alisdair",player:"Alan",signed:true},
+             {name:"Dr Quigley",player:"Beatrice",signed:false},{name:"the Razor Artiste",player:"Delia",signed:false}],
+    step:0
+  });
+  rerender(); toast("Example loaded — the book’s own concern");
+});
+
+renderStep(); renderSheet();
+</script>
+</body>
+</html>
