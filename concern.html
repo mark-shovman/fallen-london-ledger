@@ -536,7 +536,8 @@ function renderRail(){
     let pick="";
     if(s.key==="ambition") pick = S.ambition? (S.ambition.length>34?S.ambition.slice(0,34)+"…":S.ambition) : "";
     else if(s.key==="principal") pick = S.pName||"";
-    else if(s.key==="assets") pick = S.resources.filter(x=>x.t).length+"r · "+S.equipment.filter(x=>x.t).length+"e · "+S.benefits.length+"b";
+    else if(s.key==="assets"){ const nr=S.resources.filter(x=>x.t).length, ne=S.equipment.filter(x=>x.t).length, nb=S.benefits.length;
+      pick = (nr||ne||nb)? nr+"r · "+ne+"e · "+nb+"b":""; }
     else if(s.key==="name") pick = S.name||"";
     else if(s.key==="members") pick = S.members.filter(m=>m.name).length? S.members.filter(m=>m.name).length+" members":"";
     else if(s.key==="contract"){ const n=S.members.filter(m=>m.name).length, g=S.members.filter(m=>m.name&&m.signed).length;
