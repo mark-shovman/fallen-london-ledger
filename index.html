@@ -480,10 +480,11 @@ const NATURES = [
       "Four Paws — favourable circumstances for going unnoticed, fitting through gaps, climbing and arriving where nobody thought you could; human work — hands, reach, strength — is a formidable challenge, and you carry one notable item",
       "Small and Soft, and Out of Favour — you are overcome by Wounds or Scandal at level 6 instead of 8",
       "Nine Lives — overcome by Wounds, strike a life and return next intermission with your Wounds cleared, no recovery roll and no cost to the concern; raise your Nightmares level by 1, and the GM says what your reflection kept. The ninth death is final",
-      "Precedence and Custom — assert your title for favourable circumstances with lesser cats, 1 Scandal if a greater one hears it; courtesy shown to you obliges a secret, or 1 Scandal"
+      "Precedence and Custom — assert your title for favourable circumstances with lesser cats, 1 Scandal if a greater one hears it; courtesy shown to you obliges a secret, or 1 Scandal",
+      "Old Scars — optional: start the game with up to 3 lives already spent, one Area of Expertise at Veteran for each"
     ],
     grants:[{skill:"Glasswork",level:2,note:"Glasswork special skill"}],
-    lives:9, barsProfession:"Silverer", barsTwist:"Glasswork"
+    lives:9, barsProfession:"Silverer", barsTwist:"Glasswork", livesAoePer:2, livesAoeCap:3
   }
 ];
 
@@ -797,7 +798,9 @@ function compute(){
   if(o) aoe.push({name:o.name,level:2,free:true,src:"origin"});
   if(t&&t.freeAoE) aoe.push({...t.freeAoE,free:true,src:t.name});
   S.aoe.forEach(x=>aoe.push({...x,free:false}));
-  const points = 2 + ((n&&n.aoeBonus)||0) + ((t&&t.aoeBonus)||0);
+  const livesAoeSpent = Math.min(S.livesSpent||0, (n&&n.livesAoeCap)||0);
+  const livesAoeBonus = livesAoeSpent * ((n&&n.livesAoePer)||0);
+  const points = 2 + ((n&&n.aoeBonus)||0) + ((t&&t.aoeBonus)||0) + livesAoeBonus;
   const spent = S.aoe.reduce((s,x)=>s+x.level,0);
 
   const notices=[];
@@ -827,7 +830,7 @@ function compute(){
   if(!S.ambition) notices.push(["warn","Write your angle on the concern's grand ambition."]);
   if(!notices.some(x=>x[0]!=="ok")&&S.twist) notices.push(["ok","Everything checks out. Sign the contract."]);
 
-  return {skills,attrs,menaces,obs,obsTotal,obsCap,obsOver,aoe,points,spent,notices};
+  return {skills,attrs,menaces,obs,obsTotal,obsCap,obsOver,aoe,points,spent,notices,livesAoeSpent,livesAoeBonus};
 }
 
 /* ============================ RENDER: RAIL ============================ */
@@ -942,7 +945,8 @@ function renderStep(){
     const n=nat();
     if(n) html += '<div class="detail"><div class="field"><span class="lbl">Abilities &amp; traits</span><div class="mech" style="font-family:var(--mono);font-size:.72rem;color:var(--ink-muted);display:flex;flex-direction:column;gap:.25rem">'+
       n.mech.map(m=>"<span>"+esc(m)+"</span>").join("")+"</div></div>"+
-      ((n.grants||[]).filter(g=>SPECIAL_INFO[g.skill]).map(g=>specialRef(g.skill)).join(""))+"</div>"+
+      ((n.grants||[]).filter(g=>SPECIAL_INFO[g.skill]).map(g=>specialRef(g.skill)).join(""))+
+      livesForAoeControl(n)+"</div>"+
       bumpControls((n.bumps||[]).map(b=>({...b,from:n.name})),c.skills,c.attrs);
   }
 
@@ -1073,7 +1077,8 @@ function renderStep(){
     intro="Your origin gives one Area of Expertise at Veteran for free. Beyond that you have levels to spend: a new area starts at Casual, and each further level raises it — Casual answers one question, Veteran two, Esoteric three.";
     const sugg=[].concat(pro()?pro().aoe:[],aso()?aso().aoe:[]).filter((v,i,a)=>a.indexOf(v)===i);
     html = '<div class="detail" style="border-top:0;padding-top:0"><div class="field"><span class="lbl">Levels</span>'+
-      '<span class="hint">'+c.spent+" of "+c.points+" spent"+((nat()&&nat().aoeNote)?" · "+nat().aoeNote:"")+((twi()&&twi().aoeNote)?" · "+twi().aoeNote:"")+"</span></div>"+
+      '<span class="hint">'+c.spent+" of "+c.points+" spent"+((nat()&&nat().aoeNote)?" · "+nat().aoeNote:"")+((twi()&&twi().aoeNote)?" · "+twi().aoeNote:"")+
+        (c.livesAoeBonus?" · "+c.livesAoeSpent+(c.livesAoeSpent===1?" life":" lives")+" spent for "+c.livesAoeBonus+" further levels":"")+"</span></div>"+
       '<div class="field"><span class="lbl">Areas of Expertise</span>'+
         c.aoe.map(x=>'<div class="kv"><span class="k">'+esc(x.name)+(x.free?' <span class="rank-note">('+esc(x.src)+", free)</span>":"")+'</span><span class="v">'+AOENAME[x.level]+
           (x.free?"":' <button class="chip" type="button" data-act="aoe-down" data-name="'+esc(x.name)+'">−</button><button class="chip" type="button" data-act="aoe-up" data-name="'+esc(x.name)+'">+</button><button class="chip" type="button" data-act="aoe-del" data-name="'+esc(x.name)+'">✕</button>')+"</span></div>").join("")+"</div>"+
@@ -1160,6 +1165,15 @@ function livesRow(){
     '<span class="ov"'+(left<=1?' style="color:var(--bad)"':"")+">"+left+" left</span></div>"+
     '<p class="rank-note">'+(left? "Overcome by Wounds: strike a life, return next intermission, and raise your Nightmares level by 1."
       : "No lives left. The next death is final.")+"</p>";
+}
+function livesForAoeControl(n){
+  if(!n||!n.livesAoePer) return "";
+  const spent=Math.min(S.livesSpent||0,n.livesAoeCap), bonus=spent*n.livesAoePer;
+  return '<div class="field"><span class="lbl">Old Scars <span class="hint">optional</span></span>'+
+    '<span class="hint">Start with up to '+n.livesAoeCap+' lives already spent, for '+n.livesAoePer+' further Area of Expertise levels each.</span>'+
+    '<span class="boxes" style="margin-top:.3rem">'+Array.from({length:n.livesAoeCap},(_,i)=>
+      '<button class="chg'+(i<spent?" on":"")+'" type="button" data-life="'+i+'" aria-label="Lives spent: '+(i+1)+'"></button>').join("")+"</span>"+
+    '<span class="hint">'+spent+" of "+n.livesAoeCap+" spent for "+bonus+" AoE levels — also marks your Lives track on the sheet.</span></div>";
 }
 function chargeBoxes(name){
   const n=S.charges[name]||0;
@@ -1449,7 +1463,7 @@ document.addEventListener("click",e=>{
   }
   const lf=e.target.closest("[data-life]");
   if(lf){ const i=Number(lf.dataset.life), cur=S.livesSpent||0;
-    S.livesSpent=(cur===i+1)?i:(i+1); renderSheet(); return; }
+    S.livesSpent=(cur===i+1)?i:(i+1); rerender(); return; }
   const cg=e.target.closest("[data-chg]");
   if(cg){
     const k=cg.dataset.chg, i=Number(cg.dataset.i), cur=S.charges[k]||0;
