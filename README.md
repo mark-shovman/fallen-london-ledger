@@ -10,6 +10,7 @@ step, no dependencies, nothing to install.
 |---|---|
 | `index.html` | The character ledger. Open it in any browser, or serve it from GitHub Pages. |
 | `concern.html` | The concern ledger: grand ambition, principal, starting assets, benefits, members, contract. Build the concern first — its ambition and principal shape every character. |
+| `homebrew-cats.md` | Design notes for the Cat, a homebrew sixth nature: what canon gives us, the budget every corebook nature is built to, and the Cat's own numbers and traits. The ledger has it as a playable nature, tagged homebrew. |
 | `kit-catalogue.md` | The Chapter 6 equipment and resource catalogue in editable form. The ledger has a **Load catalogue…** button on the Kit step that reads this file, so you can correct an entry and see it immediately. |
 
 ## Publishing it on GitHub Pages

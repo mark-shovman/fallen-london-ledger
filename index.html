@@ -470,6 +470,20 @@ const NATURES = [
       {key:"tomb_s1",kind:"skillRank",cap:3,label:"Lengthy Experience: raise one skill by a rank (up to Master)"},
       {key:"tomb_s2",kind:"skillRank",cap:1,label:"Lengthy Experience: raise a second skill by a rank (up to Trained)"}],
     aoeBonus:2, aoeNote:"Lengthy Experience grants 2 further levels of Area of Expertise"
+  },
+  { name:"Cat", homebrew:true,
+    flavour:"A nobody's pet and a somebody's baroness: twelve pounds of opinion on this side of the glass, a panther holding an ancient border on the other.",
+    menaces:{Wounds:[2,6],Nightmares:[3,8],Scandal:[3,6],Suspicion:[4,8]},
+    mech:[
+      "Every Cat a Lion — Glasswork at Adept; in Parabola you wear your true shape. Never a tiger. You may not take the Silverer profession or the Glasswork twist",
+      "The Trick of the Glass — pass through any mirror large enough for you: mark 1 Nightmare, or 2 to carry a companion, and something always notices the door was used twice",
+      "Four Paws — favourable circumstances for going unnoticed, fitting through gaps, climbing and arriving where nobody thought you could; human work — hands, reach, strength — is a formidable challenge, and you carry one notable item",
+      "Small and Soft, and Out of Favour — you are overcome by Wounds or Scandal at level 6 instead of 8",
+      "Nine Lives — overcome by Wounds, strike a life and return next intermission with your Wounds cleared, no recovery roll and no cost to the concern; raise your Nightmares level by 1, and the GM says what your reflection kept. The ninth death is final",
+      "Precedence and Custom — assert your title for favourable circumstances with lesser cats, 1 Scandal if a greater one hears it; courtesy shown to you obliges a secret, or 1 Scandal"
+    ],
+    grants:[{skill:"Glasswork",level:2,note:"Glasswork special skill"}],
+    lives:9, barsProfession:"Silverer", barsTwist:"Glasswork"
   }
 ];
 
@@ -684,7 +698,7 @@ const S = {
   disposition:null, dispOptIn:false, association:null, twist:null,
   ambition:"", goal:"", mundanity:"", connection:"",
   attrs:{Dangerous:0,Persuasive:0,Shadowy:0,Watchful:0},
-  bumps:{}, aoe:[], extraObs:[], bonds:[], menaceLevel:{}, charges:{}, slot:"originEq", gearQuery:"", gearCat:"",
+  bumps:{}, aoe:[], extraObs:[], bonds:[], menaceLevel:{}, charges:{}, livesSpent:0, slot:"originEq", gearQuery:"", gearCat:"",
   gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},
   step:0
 };
@@ -794,6 +808,10 @@ function compute(){
     notices.push(["err",t.name+" requires the "+t.requiresProfession+" profession."]);
   if(t&&t.secondProfession&&!S.profession2) notices.push(["warn","Another String in Your Bow: choose your second profession on the Profession step."]);
   if(p2&&p2.forcedTwist&&S.twist!==p2.forcedTwist) notices.push(["err",p2.name+" as a second profession demands the "+p2.forcedTwist+" twist, which Another String in Your Bow has already taken."]);
+  if(n&&n.barsProfession&&(S.profession===n.barsProfession||S.profession2===n.barsProfession))
+    notices.push(["err","A "+n.name+" may not take the "+n.barsProfession+" profession — the trick of the glass is innate, and Glasswork is a discipline invented by people who lack it."]);
+  if(n&&n.barsTwist&&S.twist===n.barsTwist)
+    notices.push(["err","A "+n.name+" may not take the "+n.barsTwist+" twist; you were born knowing it."]);
   if(p&&!S.profChoice) notices.push(["warn",p.name+": choose which of its three skills gets the extra rank."]);
   if(!S.attr2||!S.attr0) notices.push(["warn","Assign your attributes: one at 2, one at 0, the rest at 1."]);
   else if(S.attr2===S.attr0) notices.push(["err","The same attribute cannot be both your 2 and your 0."]);
@@ -919,7 +937,8 @@ function renderStep(){
   if(k==="nature"){
     intro="Your nature sets your menace tracks — how many boxes each menace holds, and the level at which it overcomes you. It is the one identity your character never chose.";
     html = '<div class="cards">'+NATURES.map(n=>cardHTML(n.name,S.nature===n.name,n.flavour,
-      MENACES.map(m=>'<span><b>'+m+'</b> '+n.menaces[m][0]+" boxes, overcome "+n.menaces[m][1]+"</span>"))).join("")+"</div>";
+      MENACES.map(m=>'<span><b>'+m+'</b> '+n.menaces[m][0]+" boxes, overcome "+n.menaces[m][1]+"</span>"),
+      n.homebrew?"homebrew":null)).join("")+"</div>";
     const n=nat();
     if(n) html += '<div class="detail"><div class="field"><span class="lbl">Abilities &amp; traits</span><div class="mech" style="font-family:var(--mono);font-size:.72rem;color:var(--ink-muted);display:flex;flex-direction:column;gap:.25rem">'+
       n.mech.map(m=>"<span>"+esc(m)+"</span>").join("")+"</div></div>"+
@@ -938,10 +957,11 @@ function renderStep(){
   if(k==="profession"){
     intro="Your defining skillset, and how you earn a living between ventures. One skill at Adept, a second at Trained, plus one extra rank among three — then equipment and a two-use resource."+
       (S.twist==="Another String in Your Bow" ? " You have taken Another String in Your Bow, so you pick a second profession below as well." : " Want two careers? The Another String in Your Bow twist (Step VI) grants a second profession in full.");
+    const nb=nat();
     html = '<div class="cards">'+PROFESSIONS.map(p=>cardHTML(p.name,S.profession===p.name,p.flavour,
       [ "<span><b>"+esc(p.adept)+"</b> Adept"+(p.trained?" · <b>"+esc(p.trained)+"</b> Trained":"")+"</span>",
         "<span>+1 rank: "+p.choice.join(" / ")+"</span>" ].concat(p.forcedTwist?["<span style='color:var(--violant)'>requires the "+p.forcedTwist+" twist</span>"]:[]),
-      p.special?"special skill":null)).join("")+"</div>";
+      p.special?"special skill":null, !!(nb&&nb.barsProfession===p.name))).join("")+"</div>";
     const p=pro();
     if(p){
       html += '<div class="detail"><div class="field"><span class="lbl">Extra rank</span><span class="hint">Add one rank to one of these three skills.</span>'+
@@ -1000,7 +1020,9 @@ function renderStep(){
     intro="The one identity no two characters at the table may share. Three twists are locked to a profession, and several carry an obsession of their own.";
     const p=pro();
     html = '<div class="cards">'+TWISTS.map(t=>{
-      const blocked = t.requiresProfession && S.profession && S.profession!==t.requiresProfession && S.profession2!==t.requiresProfession;
+      const nb=nat();
+      const blocked = (t.requiresProfession && S.profession && S.profession!==t.requiresProfession && S.profession2!==t.requiresProfession)
+        || !!(nb && nb.barsTwist===t.name);
       return cardHTML(t.name,S.twist===t.name,t.flavour,
         t.mech.slice(0,2).map(m=>"<span>"+esc(m)+"</span>").concat(t.obsessions?["<span style='color:var(--violant)'>obsession: "+t.obsessions.map(o=>o.name+" 3").join(" + ")+"</span>"]:[]),
         t.requiresProfession?t.requiresProfession:null, blocked);
@@ -1129,6 +1151,16 @@ function renderStep(){
 
 /* ============================ RENDER: SHEET ============================ */
 const RANKNOTE={1:"+1d6",2:"+1d6 or min 1 hit",3:"+1 hit"};
+function livesRow(){
+  const n=nat(); if(!n||!n.lives) return "";
+  const spent=Math.min(S.livesSpent||0,n.lives), left=n.lives-spent;
+  return '<div class="menace" style="margin-top:.55rem;align-items:flex-start"><span class="name" style="color:var(--violant)">lives</span>'+
+    '<span class="boxes" style="flex-wrap:wrap;max-width:11rem">'+Array.from({length:n.lives},(_,i)=>
+      '<button class="chg'+(i<spent?" on":"")+'" type="button" data-life="'+i+'" aria-label="Lives spent: '+(i+1)+'"></button>').join("")+"</span>"+
+    '<span class="ov"'+(left<=1?' style="color:var(--bad)"':"")+">"+left+" left</span></div>"+
+    '<p class="rank-note">'+(left? "Overcome by Wounds: strike a life, return next intermission, and raise your Nightmares level by 1."
+      : "No lives left. The next death is final.")+"</p>";
+}
 function chargeBoxes(name){
   const n=S.charges[name]||0;
   return '<span class="charges" title="charges (0–3)">'+[0,1,2].map(i=>
@@ -1183,7 +1215,8 @@ function renderSheet(){
     '<div class="sect"><span class="lbl">Menaces</span>'+
       '<div class="menace" style="padding-bottom:.15rem"><span class="name" style="color:var(--ink-dim)">track</span>'+
       '<span class="rank-note">boxes</span><span class="track" style="color:var(--ink-dim)"><span class="rank-note">level / overcome</span></span></div>'+menaceHTML+
-      '<p class="rank-note" style="margin-top:.5rem">Fill every box → erase them, raise the level by 1, take a complication.</p></div>'+
+      '<p class="rank-note" style="margin-top:.5rem">Fill every box → erase them, raise the level by 1, take a complication.</p>'+
+      livesRow()+"</div>"+
     '<div class="sect"><span class="lbl">Attributes &amp; skills</span><div class="skillgrid">'+skillHTML+specialHTML+"</div></div>"+
     '<div class="sect"><span class="lbl">Obsessions · '+c.obsTotal+"/"+c.obsCap+'</span><div class="obs">'+
       c.obs.map(o=>'<div class="obsrow"><span class="os">'+o.strength+'</span><span><b>'+esc(o.name)+"</b> "+'<span class="od">'+esc(o.detail||"")+"</span>"+chargeBoxes(o.name)+"</span></div>").join("")+
@@ -1233,6 +1266,9 @@ function renderPrint(){
     '<div class="p-cols"><div>'+
       "<h2>Attributes</h2><table>"+ATTRS.map(a=>"<tr><td>"+a+'</td><td class="num">'+c.attrs[a]+"d</td></tr>").join("")+"</table>"+
       "<h2>Skills</h2><table>"+(sk.length?sk.map(x=>"<tr><td>"+esc(x)+'</td><td class="num">'+RANKNAME[c.skills[x].lvl]+" · "+RANKNOTE[c.skills[x].lvl]+"</td></tr>").join(""):"<tr><td>none</td></tr>")+"</table>"+
+      (function(){const n=nat(); if(!n||!n.lives) return "";
+        const spent=Math.min(S.livesSpent||0,n.lives);
+        return "<h2>Lives</h2><p>"+boxRow(n.lives,spent)+" &nbsp;"+(n.lives-spent)+" of "+n.lives+" remaining</p>";})()+
       "<h2>Menaces</h2><table><tr><th>Menace</th><th>Track</th><th>Level</th></tr>"+
         MENACES.map(m=>"<tr><td>"+m+"</td><td>"+boxRow(c.menaces[m].boxes,0)+'</td><td class="num">'+(S.menaceLevel[m]||0)+" / "+c.menaces[m].over+"</td></tr>").join("")+"</table>"+
       "<h2>Areas of expertise</h2><table>"+(c.aoe.length?c.aoe.map(x=>"<tr><td>"+esc(x.name)+'</td><td class="num">'+AOENAME[x.level]+"</td></tr>").join(""):"<tr><td>none</td></tr>")+"</table>"+
@@ -1265,7 +1301,7 @@ function renderPrint(){
 /* ============================ SAVE · LOAD · EXPORT ============================ */
 const SAVE_KEYS=["name","look","nature","origin","profession","profChoice","profession2","profChoice2","disposition",
   "dispOptIn","association","twist","ambition","goal","mundanity","connection","attr2","attr0","bumps","aoe",
-  "extraObs","bonds","menaceLevel","charges","gear","step"];
+  "extraObs","bonds","menaceLevel","charges","livesSpent","gear","step"];
 function serialize(){
   const out={};
   SAVE_KEYS.forEach(k=>{ if(S[k]!==undefined) out[k]=S[k]; });
@@ -1279,7 +1315,7 @@ function applyData(txt){
   SAVE_KEYS.forEach(k=>{ if(ch[k]!==undefined) S[k]=ch[k]; });
   S.gear=Object.assign({originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},S.gear||{});
   S.bumps=S.bumps||{}; S.aoe=S.aoe||[]; S.extraObs=S.extraObs||[]; S.bonds=S.bonds||[];
-  S.menaceLevel=S.menaceLevel||{}; S.charges=S.charges||{};
+  S.menaceLevel=S.menaceLevel||{}; S.charges=S.charges||{}; S.livesSpent=Number(S.livesSpent)||0;
   S.slot=S.slot||"originEq"; S.gearQuery=""; S.gearCat="";
   S.step=Math.min(Math.max(0,Number(S.step)||0),STEPS.length-1);
   rerender(); toast("Ledger loaded");
@@ -1411,6 +1447,9 @@ document.addEventListener("click",e=>{
     S.menaceLevel[m]=Math.max(0,Math.min(max,cur+Number(ml.dataset.d)));
     renderSheet(); return;
   }
+  const lf=e.target.closest("[data-life]");
+  if(lf){ const i=Number(lf.dataset.life), cur=S.livesSpent||0;
+    S.livesSpent=(cur===i+1)?i:(i+1); renderSheet(); return; }
   const cg=e.target.closest("[data-chg]");
   if(cg){
     const k=cg.dataset.chg, i=Number(cg.dataset.i), cur=S.charges[k]||0;
@@ -1504,7 +1543,7 @@ $("#file-input").addEventListener("change",e=>{
 $("#btn-reset").addEventListener("click",()=>{
   Object.assign(S,{name:"",look:"",nature:null,origin:null,profession:null,profChoice:null,profession2:null,profChoice2:null,
     disposition:null,dispOptIn:false,association:null,twist:null,ambition:"",goal:"",mundanity:"",connection:"",
-    attr2:null,attr0:null,bumps:{},aoe:[],extraObs:[],bonds:[],newObs:null,newAoE:"",menaceLevel:{},charges:{},slot:"originEq",gearQuery:"",gearCat:"",
+    attr2:null,attr0:null,bumps:{},aoe:[],extraObs:[],bonds:[],newObs:null,newAoE:"",menaceLevel:{},charges:{},livesSpent:0,slot:"originEq",gearQuery:"",gearCat:"",
     gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},step:0});
   rerender(); toast("Ledger cleared");
 });
