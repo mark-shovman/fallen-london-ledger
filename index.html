@@ -481,7 +481,7 @@ const NATURES = [
       "Small and Soft, and Out of Favour — you are overcome by Wounds or Scandal at level 6 instead of 8",
       "Nine Lives — overcome by Wounds, strike a life and return next intermission with your Wounds cleared, no recovery roll and no cost to the concern; raise your Nightmares level by 1, and the GM says what your reflection kept. The ninth death is final",
       "Precedence and Custom — assert your title for favourable circumstances with lesser cats, 1 Scandal if a greater one hears it; courtesy shown to you obliges a secret, or 1 Scandal",
-      "Old Scars — optional: start the game with up to 3 lives already spent, one Area of Expertise at Veteran for each"
+      "Old Scars — optional: start the game with up to 3 lives already spent, for 2 further Area of Expertise levels each (a new area at Veteran, say). The scars are old: they do not raise your Nightmares level"
     ],
     grants:[{skill:"Glasswork",level:2,note:"Glasswork special skill"}],
     lives:9, barsProfession:"Silverer", barsTwist:"Glasswork", livesAoePer:2, livesAoeCap:3
@@ -699,7 +699,7 @@ const S = {
   disposition:null, dispOptIn:false, association:null, twist:null,
   ambition:"", goal:"", mundanity:"", connection:"",
   attrs:{Dangerous:0,Persuasive:0,Shadowy:0,Watchful:0},
-  bumps:{}, aoe:[], extraObs:[], bonds:[], menaceLevel:{}, charges:{}, livesSpent:0, slot:"originEq", gearQuery:"", gearCat:"",
+  bumps:{}, aoe:[], extraObs:[], bonds:[], menaceLevel:{}, charges:{}, livesSpent:0, oldScars:0, slot:"originEq", gearQuery:"", gearCat:"",
   gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},
   step:0
 };
@@ -798,7 +798,7 @@ function compute(){
   if(o) aoe.push({name:o.name,level:2,free:true,src:"origin"});
   if(t&&t.freeAoE) aoe.push({...t.freeAoE,free:true,src:t.name});
   S.aoe.forEach(x=>aoe.push({...x,free:false}));
-  const livesAoeSpent = Math.min(S.livesSpent||0, (n&&n.livesAoeCap)||0);
+  const livesAoeSpent = Math.min(S.oldScars||0, (n&&n.livesAoeCap)||0);
   const livesAoeBonus = livesAoeSpent * ((n&&n.livesAoePer)||0);
   const points = 2 + ((n&&n.aoeBonus)||0) + ((t&&t.aoeBonus)||0) + livesAoeBonus;
   const spent = S.aoe.reduce((s,x)=>s+x.level,0);
@@ -946,7 +946,7 @@ function renderStep(){
     if(n) html += '<div class="detail"><div class="field"><span class="lbl">Abilities &amp; traits</span><div class="mech" style="font-family:var(--mono);font-size:.72rem;color:var(--ink-muted);display:flex;flex-direction:column;gap:.25rem">'+
       n.mech.map(m=>"<span>"+esc(m)+"</span>").join("")+"</div></div>"+
       ((n.grants||[]).filter(g=>SPECIAL_INFO[g.skill]).map(g=>specialRef(g.skill)).join(""))+
-      livesForAoeControl(n)+"</div>"+
+      livesForAoeControl(n,c)+"</div>"+
       bumpControls((n.bumps||[]).map(b=>({...b,from:n.name})),c.skills,c.attrs);
   }
 
@@ -1078,7 +1078,7 @@ function renderStep(){
     const sugg=[].concat(pro()?pro().aoe:[],aso()?aso().aoe:[]).filter((v,i,a)=>a.indexOf(v)===i);
     html = '<div class="detail" style="border-top:0;padding-top:0"><div class="field"><span class="lbl">Levels</span>'+
       '<span class="hint">'+c.spent+" of "+c.points+" spent"+((nat()&&nat().aoeNote)?" · "+nat().aoeNote:"")+((twi()&&twi().aoeNote)?" · "+twi().aoeNote:"")+
-        (c.livesAoeBonus?" · "+c.livesAoeSpent+(c.livesAoeSpent===1?" life":" lives")+" spent for "+c.livesAoeBonus+" further levels":"")+"</span></div>"+
+        (c.livesAoeBonus?" · "+c.livesAoeSpent+(c.livesAoeSpent===1?" Old Scar":" Old Scars")+" (Nature step) for "+c.livesAoeBonus+" further levels":"")+"</span></div>"+
       '<div class="field"><span class="lbl">Areas of Expertise</span>'+
         c.aoe.map(x=>'<div class="kv"><span class="k">'+esc(x.name)+(x.free?' <span class="rank-note">('+esc(x.src)+", free)</span>":"")+'</span><span class="v">'+AOENAME[x.level]+
           (x.free?"":' <button class="chip" type="button" data-act="aoe-down" data-name="'+esc(x.name)+'">−</button><button class="chip" type="button" data-act="aoe-up" data-name="'+esc(x.name)+'">+</button><button class="chip" type="button" data-act="aoe-del" data-name="'+esc(x.name)+'">✕</button>')+"</span></div>").join("")+"</div>"+
@@ -1156,24 +1156,27 @@ function renderStep(){
 
 /* ============================ RENDER: SHEET ============================ */
 const RANKNOTE={1:"+1d6",2:"+1d6 or min 1 hit",3:"+1 hit"};
+function lifeBoxes(count,spent,attr){
+  return Array.from({length:count},(_,i)=>
+    '<button class="chg'+(i<spent?" on":"")+'" type="button" '+attr+'="'+i+'" aria-label="Lives spent: '+(i+1)+'"></button>').join("");
+}
 function livesRow(){
   const n=nat(); if(!n||!n.lives) return "";
   const spent=Math.min(S.livesSpent||0,n.lives), left=n.lives-spent;
   return '<div class="menace" style="margin-top:.55rem;align-items:flex-start"><span class="name" style="color:var(--violant)">lives</span>'+
-    '<span class="boxes" style="flex-wrap:wrap;max-width:11rem">'+Array.from({length:n.lives},(_,i)=>
-      '<button class="chg'+(i<spent?" on":"")+'" type="button" data-life="'+i+'" aria-label="Lives spent: '+(i+1)+'"></button>').join("")+"</span>"+
+    '<span class="boxes" style="flex-wrap:wrap;max-width:11rem">'+lifeBoxes(n.lives,spent,"data-life")+"</span>"+
     '<span class="ov"'+(left<=1?' style="color:var(--bad)"':"")+">"+left+" left</span></div>"+
     '<p class="rank-note">'+(left? "Overcome by Wounds: strike a life, return next intermission, and raise your Nightmares level by 1."
       : "No lives left. The next death is final.")+"</p>";
 }
-function livesForAoeControl(n){
+function livesForAoeControl(n,c){
   if(!n||!n.livesAoePer) return "";
-  const spent=Math.min(S.livesSpent||0,n.livesAoeCap), bonus=spent*n.livesAoePer;
+  const over=c.spent>c.points;
   return '<div class="field"><span class="lbl">Old Scars <span class="hint">optional</span></span>'+
-    '<span class="hint">Start with up to '+n.livesAoeCap+' lives already spent, for '+n.livesAoePer+' further Area of Expertise levels each.</span>'+
-    '<span class="boxes" style="margin-top:.3rem">'+Array.from({length:n.livesAoeCap},(_,i)=>
-      '<button class="chg'+(i<spent?" on":"")+'" type="button" data-life="'+i+'" aria-label="Lives spent: '+(i+1)+'"></button>').join("")+"</span>"+
-    '<span class="hint">'+spent+" of "+n.livesAoeCap+" spent for "+bonus+" AoE levels — also marks your Lives track on the sheet.</span></div>";
+    '<span class="hint">Start with up to '+n.livesAoeCap+' lives already spent, for '+n.livesAoePer+' further Area of Expertise levels each. They are marked on your Lives track and never refunded in play.</span>'+
+    '<span class="boxes" style="margin-top:.3rem">'+lifeBoxes(n.livesAoeCap,c.livesAoeSpent,"data-scar")+"</span>"+
+    '<span class="hint">'+c.livesAoeSpent+" of "+n.livesAoeCap+" spent for "+c.livesAoeBonus+" AoE levels.</span>"+
+    (over?'<span class="hint" style="color:var(--bad)">Your Areas of Expertise now overspend by '+(c.spent-c.points)+' level(s) — trim them on the Expertise step.</span>':"")+"</div>";
 }
 function chargeBoxes(name){
   const n=S.charges[name]||0;
@@ -1315,7 +1318,7 @@ function renderPrint(){
 /* ============================ SAVE · LOAD · EXPORT ============================ */
 const SAVE_KEYS=["name","look","nature","origin","profession","profChoice","profession2","profChoice2","disposition",
   "dispOptIn","association","twist","ambition","goal","mundanity","connection","attr2","attr0","bumps","aoe",
-  "extraObs","bonds","menaceLevel","charges","livesSpent","gear","step"];
+  "extraObs","bonds","menaceLevel","charges","livesSpent","oldScars","gear","step"];
 function serialize(){
   const out={};
   SAVE_KEYS.forEach(k=>{ if(S[k]!==undefined) out[k]=S[k]; });
@@ -1329,7 +1332,7 @@ function applyData(txt){
   SAVE_KEYS.forEach(k=>{ if(ch[k]!==undefined) S[k]=ch[k]; });
   S.gear=Object.assign({originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},S.gear||{});
   S.bumps=S.bumps||{}; S.aoe=S.aoe||[]; S.extraObs=S.extraObs||[]; S.bonds=S.bonds||[];
-  S.menaceLevel=S.menaceLevel||{}; S.charges=S.charges||{}; S.livesSpent=Number(S.livesSpent)||0;
+  S.menaceLevel=S.menaceLevel||{}; S.charges=S.charges||{}; S.livesSpent=Number(S.livesSpent)||0; S.oldScars=Number(S.oldScars)||0; S.livesSpent=Math.max(S.livesSpent,S.oldScars);
   S.slot=S.slot||"originEq"; S.gearQuery=""; S.gearCat="";
   S.step=Math.min(Math.max(0,Number(S.step)||0),STEPS.length-1);
   rerender(); toast("Ledger loaded");
@@ -1433,7 +1436,8 @@ document.addEventListener("click",e=>{
     if(key==="disposition"){ S.dispOptIn=false; delete S.bumps.obsDetail; }
     if(key==="twist"){ S.profession2=null; S.profChoice2=null;
       const t=twi(); if(t){ (t.bumps||[]).forEach(b=>{delete S.bumps[b.key]; delete S.bumps[b.key+"_t"];}); if(t.choice) delete S.bumps[t.choice.key]; } }
-    if(key==="nature"){ const n=nat(); if(n&&n.bumps) n.bumps.forEach(b=>delete S.bumps[b.key]); }
+    if(key==="nature"){ const n=nat(); if(n&&n.bumps) n.bumps.forEach(b=>delete S.bumps[b.key]);
+      S.livesSpent=Math.max(0,(S.livesSpent||0)-(S.oldScars||0)); S.oldScars=0; }
     rerender(); return;
   }
 
@@ -1463,7 +1467,10 @@ document.addEventListener("click",e=>{
   }
   const lf=e.target.closest("[data-life]");
   if(lf){ const i=Number(lf.dataset.life), cur=S.livesSpent||0;
-    S.livesSpent=(cur===i+1)?i:(i+1); rerender(); return; }
+    S.livesSpent=Math.max(S.oldScars||0,(cur===i+1)?i:(i+1)); renderSheet(); return; }
+  const sc=e.target.closest("[data-scar]");
+  if(sc){ const i=Number(sc.dataset.scar), cur=S.oldScars||0, next=(cur===i+1)?i:(i+1);
+    S.livesSpent=Math.max(next,(S.livesSpent||0)+next-cur); S.oldScars=next; rerender(); return; }
   const cg=e.target.closest("[data-chg]");
   if(cg){
     const k=cg.dataset.chg, i=Number(cg.dataset.i), cur=S.charges[k]||0;
@@ -1557,7 +1564,7 @@ $("#file-input").addEventListener("change",e=>{
 $("#btn-reset").addEventListener("click",()=>{
   Object.assign(S,{name:"",look:"",nature:null,origin:null,profession:null,profChoice:null,profession2:null,profChoice2:null,
     disposition:null,dispOptIn:false,association:null,twist:null,ambition:"",goal:"",mundanity:"",connection:"",
-    attr2:null,attr0:null,bumps:{},aoe:[],extraObs:[],bonds:[],newObs:null,newAoE:"",menaceLevel:{},charges:{},livesSpent:0,slot:"originEq",gearQuery:"",gearCat:"",
+    attr2:null,attr0:null,bumps:{},aoe:[],extraObs:[],bonds:[],newObs:null,newAoE:"",menaceLevel:{},charges:{},livesSpent:0,oldScars:0,slot:"originEq",gearQuery:"",gearCat:"",
     gear:{originEq:"",profEq:"",profRes:"",assocRes:"",extraEq:"",extraRes:""},step:0});
   rerender(); toast("Ledger cleared");
 });

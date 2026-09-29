@@ -125,10 +125,16 @@ gets marked most often, ending two levels early.
   but mark 1 Scandal if a cat of higher standing is present to hear it. And when
   anyone shows you courtesy, catches you unawares, or does you a favour, custom
   obliges you to give them a secret; refuse, and mark 1 Scandal.
+- **Old Scars** *(optional trait)* — Cats are old, and a PC has probably been
+  living dangerously already. You may start the game with up to three of your
+  nine lives already spent; take **2 further Area of Expertise levels** for each
+  (enough for a new area at Veteran), tied to the war behind the glass. The
+  scars are old, so they do not raise your Nightmares level. The lives stay
+  struck for the whole game and are never refunded in play.
 
-Six entries — one more than any corebook nature, because two of them are the
-halves of a single bargain: the caps that make a cat die easily, and the lives
-that make it come back. No attribute adjustment: the Rattus faber keeps that
+Six entries, plus one optional — more than any corebook nature, because two of
+them are the halves of a single bargain: the caps that make a cat die easily,
+and the lives that make it come back. No attribute adjustment: the Rattus faber keeps that
 distinction, and the Cat's compensation is Glasswork.
 
 **Common presumptions**
@@ -186,6 +192,7 @@ imitate what it was born knowing.
 | Where the price sits | Both — Four Paws *and* lowered caps, with no attribute bump |
 | Menace spread | Wounds 2/6 · Nightmares 3/8 · Scandal 3/6 · Suspicion 4/8 |
 | Death | Nine Lives — return next intermission at the cost of a life and 1 Nightmares level; the ninth death is final |
+| Old Scars | Optional at creation: up to 3 lives pre-spent, 2 AoE levels each; no Nightmares cost |
 | Glasswork grant | Adept, matching the Rubbery Man's Shapeling Arts |
 | Cat + Silverer | Barred outright |
 
@@ -226,13 +233,12 @@ cost.
   than anyone. Nine Lives changes what going down *means*, not how often it
   happens.
 
-**A variant, if you want the lives to matter at creation.** Cats are old, and a
+**Old Scars, if you want the lives to matter at creation.** Cats are old, and a
 PC has probably been living dangerously already. Let a player start with fewer
-than nine, and take something for each life already spent: one Area of Expertise
-at Veteran per life, tied to the war behind the glass, to a maximum of three. A
-cat with six lives and three Veteran expertises is a veteran of the border in
-every sense, and closer to the end than they would like.
-
-**Lives are not recovered.** Not by intermission, not by benefit, not by Red
-Science. If Stone can be persuaded to issue a tenth, that is a whole venture, and
-the price is the GM's to name.
+than nine, and take something for each life already spent: two further levels of
+Area of Expertise per life, tied to the war behind the glass, to a maximum of
+three lives. Two levels buys a new area at Veteran, or two areas at Casual — the
+budget is what is enforced, not the shape. A cat with six lives and six extra
+levels is a veteran of the border in every sense, and closer to the end than
+they would like. The lives spent this way carry no Nightmares cost: the price
+was paid long ago, and it is paid in the lives themselves.
